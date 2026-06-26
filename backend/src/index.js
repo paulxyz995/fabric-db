@@ -5,8 +5,9 @@ const cors = require('cors');
 const { authenticate } = require('./middleware/auth');
 const authRoutes       = require('./routes/auth');
 const customerRoutes   = require('./routes/customers');
+const fabricTypeRoutes = require('./routes/fabricTypes');
 const yarnRoutes       = require('./routes/yarnReceipts');
-const jobRoutes        = require('./routes/productionJobs');
+const productionRoutes = require('./routes/production');
 const invoiceRoutes    = require('./routes/invoices');
 const dashboardRoutes  = require('./routes/dashboard');
 
@@ -21,8 +22,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api', authenticate);
 app.use('/api/dashboard',        dashboardRoutes);
 app.use('/api/customers',        customerRoutes);
+app.use('/api/fabric-types',     fabricTypeRoutes);
 app.use('/api/yarn-receipts',    yarnRoutes);
-app.use('/api/production-jobs',  jobRoutes);
+app.use('/api/production',        productionRoutes);
 app.use('/api/invoices',         invoiceRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));

@@ -2,98 +2,168 @@ const router = require('express').Router();
 const pool = require('../db/pool');
 const { adminOnly } = require('../middleware/auth');
 
-// GET /api/invoices  (HR and admin)
+// Resolve the maklon rate for a (customer, fabric_type) on a given date.
+// Most specific (matching fabric_type) wins over the catch-all (NULL) rate.
+async function resolveRate(client, customerId, fabricTypeId, onDate) {
+  const { rows } = await client.query(
+    `SELECT rate_per_kg FROM customer_rates
+     WHERE customer_id = $1
+       AND (fabric_type_id = $2 OR fabric_type_id IS NULL)
+       AND effective_from <= $3
+       AND (effective_to IS NULL OR effective_to >= $3)
+     ORDER BY fabric_type_id NULLS LAST, effective_from DESC
+     LIMIT 1`,
+    [customerId, fabricTypeId, onDate]
+  );
+  return rows[0] ? Number(rows[0].rate_per_kg) : null;
+}
+
+// POST /api/invoices/preview  (admin) — compute line items WITHOUT saving
+router.post('/preview', adminOnly, async (req, res) => {
+  const { customer_id, period_start, period_end } = req.body;
+  if (!customer_id || !period_start || !period_end) {
+    return res.status(400).json({ error: 'customer_id, period_start, period_end required' });
+  }
+  try {
+    const { rows: agg } = await pool.query(
+      `SELECT pr.fabric_type_id, ft.name AS fabric_type,
+              SUM(pr.fabric_kg) AS total_kg, SUM(pr.roll_count) AS total_rolls
+       FROM production_records pr
+       JOIN fabric_types ft ON ft.id = pr.fabric_type_id
+       WHERE pr.customer_id = $1
+         AND pr.production_date BETWEEN $2 AND $3
+       GROUP BY pr.fabric_type_id, ft.name
+       ORDER BY ft.name`,
+      [customer_id, period_start, period_end]
+    );
+    const lines = [];
+    const missing = [];
+    for (const r of agg) {
+      const rate = await resolveRate(pool, customer_id, r.fabric_type_id, period_end);
+      if (rate === null) {
+        missing.push(r.fabric_type);
+        continue;
+      }
+      const total_kg = Number(r.total_kg);
+      lines.push({
+        fabric_type_id: r.fabric_type_id,
+        fabric_type: r.fabric_type,
+        total_kg,
+        total_rolls: Number(r.total_rolls),
+        rate_per_kg: rate,
+        amount: Math.round(total_kg * rate * 100) / 100,
+      });
+    }
+    const subtotal = lines.reduce((s, l) => s + l.amount, 0);
+    res.json({ lines, subtotal, missing_rates: missing });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/invoices/generate  (admin) — build + persist invoice with lines
+router.post('/generate', adminOnly, async (req, res) => {
+  const { customer_id, period_start, period_end, invoice_date, due_date, tax_percent } = req.body;
+  if (!customer_id || !period_start || !period_end) {
+    return res.status(400).json({ error: 'customer_id, period_start, period_end required' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { rows: agg } = await client.query(
+      `SELECT pr.fabric_type_id, SUM(pr.fabric_kg) AS total_kg
+       FROM production_records pr
+       WHERE pr.customer_id = $1 AND pr.production_date BETWEEN $2 AND $3
+       GROUP BY pr.fabric_type_id`,
+      [customer_id, period_start, period_end]
+    );
+    if (agg.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'No production in this period' });
+    }
+
+    const lines = [];
+    for (const r of agg) {
+      const rate = await resolveRate(client, customer_id, r.fabric_type_id, period_end);
+      if (rate === null) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: `No rate set for fabric type id ${r.fabric_type_id}` });
+      }
+      const total_kg = Number(r.total_kg);
+      lines.push({
+        fabric_type_id: r.fabric_type_id,
+        total_kg,
+        rate_per_kg: rate,
+        amount: Math.round(total_kg * rate * 100) / 100,
+      });
+    }
+
+    const subtotal   = lines.reduce((s, l) => s + l.amount, 0);
+    const taxPct     = Number(tax_percent ?? 0);
+    const tax_amount = Math.round(subtotal * (taxPct / 100) * 100) / 100;
+    const total      = subtotal + tax_amount;
+
+    const year = new Date().getFullYear();
+    const { rows: cnt } = await client.query(
+      `SELECT COUNT(*) FROM invoices WHERE invoice_number LIKE $1`, [`INV-${year}-%`]
+    );
+    const seq = String(Number(cnt[0].count) + 1).padStart(3, '0');
+    const invoice_number = `INV-${year}-${seq}`;
+
+    const { rows: inv } = await client.query(
+      `INSERT INTO invoices
+         (invoice_number, customer_id, period_start, period_end, invoice_date, due_date,
+          subtotal, tax_percent, tax_amount, total_amount, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [invoice_number, customer_id, period_start, period_end,
+       invoice_date || new Date(), due_date || null,
+       subtotal, taxPct, tax_amount, total, req.user.id]
+    );
+
+    for (const l of lines) {
+      await client.query(
+        `INSERT INTO invoice_lines (invoice_id, fabric_type_id, total_kg, rate_per_kg, amount)
+         VALUES ($1,$2,$3,$4,$5)`,
+        [inv[0].id, l.fabric_type_id, l.total_kg, l.rate_per_kg, l.amount]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.status(201).json(inv[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// GET /api/invoices
 router.get('/', async (req, res) => {
-  const { customer_id, status, from, to } = req.query;
+  const { customer_id, status } = req.query;
   let query = 'SELECT * FROM v_invoice_summary WHERE 1=1';
   const params = [];
   if (customer_id) { params.push(customer_id); query += ` AND id IN (SELECT id FROM invoices WHERE customer_id = $${params.length})`; }
-  if (status)      { params.push(status);       query += ` AND status = $${params.length}`; }
-  if (from)        { params.push(from);         query += ` AND invoice_date >= $${params.length}`; }
-  if (to)          { params.push(to);           query += ` AND invoice_date <= $${params.length}`; }
-  query += ' ORDER BY invoice_date DESC';
+  if (status)      { params.push(status);      query += ` AND status = $${params.length}`; }
+  query += ' ORDER BY invoice_date DESC, id DESC';
   const { rows } = await pool.query(query, params);
   res.json(rows);
 });
 
-// GET /api/invoices/:id
+// GET /api/invoices/:id  — header + lines
 router.get('/:id', async (req, res) => {
-  const { rows } = await pool.query(
-    'SELECT * FROM v_invoice_summary WHERE id = $1',
-    [req.params.id]
-  );
-  if (!rows[0]) return res.status(404).json({ error: 'Invoice not found' });
-  res.json(rows[0]);
-});
-
-// POST /api/invoices — create from a production job  (admin only)
-router.post('/', adminOnly, async (req, res) => {
-  const { production_job_id, invoice_date, due_date, tax_percent, notes } = req.body;
-  if (!production_job_id) return res.status(400).json({ error: 'production_job_id required' });
-
-  try {
-    // Get job summary totals
-    const { rows: jobRows } = await pool.query(
-      'SELECT * FROM v_job_summary WHERE id = $1',
-      [production_job_id]
-    );
-    if (!jobRows[0]) return res.status(404).json({ error: 'Job not found' });
-    const job = jobRows[0];
-
-    if (job.total_fabric_kg === 0) {
-      return res.status(400).json({ error: 'No production output recorded for this job yet' });
-    }
-
-    // Get the applicable customer rate
-    const { rows: jobDetail } = await pool.query(
-      'SELECT customer_id, fabric_type_id FROM production_jobs WHERE id = $1',
-      [production_job_id]
-    );
-    const { customer_id, fabric_type_id } = jobDetail[0];
-
-    const { rows: rateRows } = await pool.query(
-      `SELECT rate_per_kg FROM customer_rates
-       WHERE customer_id = $1
-         AND (fabric_type_id = $2 OR fabric_type_id IS NULL)
-         AND effective_from <= CURRENT_DATE
-         AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
-       ORDER BY fabric_type_id NULLS LAST, effective_from DESC
-       LIMIT 1`,
-      [customer_id, fabric_type_id]
-    );
-    if (!rateRows[0]) {
-      return res.status(400).json({ error: 'No rate configured for this customer / fabric type' });
-    }
-    const rate_per_kg = Number(rateRows[0].rate_per_kg);
-    const fabric_kg   = Number(job.total_fabric_kg);
-    const taxPct      = Number(tax_percent ?? 11);
-    const subtotal    = fabric_kg * rate_per_kg;
-    const tax_amount  = subtotal * (taxPct / 100);
-    const total_amount = subtotal + tax_amount;
-
-    // Auto invoice number
-    const year = new Date().getFullYear();
-    const { rows: cntRows } = await pool.query(
-      `SELECT COUNT(*) FROM invoices WHERE invoice_number LIKE $1`,
-      [`INV-${year}-%`]
-    );
-    const seq = String(Number(cntRows[0].count) + 1).padStart(3, '0');
-    const invoice_number = `INV-${year}-${seq}`;
-
-    const { rows } = await pool.query(
-      `INSERT INTO invoices
-         (invoice_number, production_job_id, customer_id, invoice_date, due_date,
-          fabric_kg, rate_per_kg, subtotal, tax_percent, tax_amount, total_amount, notes, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
-      [invoice_number, production_job_id, customer_id,
-       invoice_date || new Date(),
-       due_date || null,
-       fabric_kg, rate_per_kg, subtotal, taxPct, tax_amount, total_amount, notes, req.user.id]
-    );
-    res.status(201).json(rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  const [hdr, lines] = await Promise.all([
+    pool.query('SELECT * FROM v_invoice_summary WHERE id = $1', [req.params.id]),
+    pool.query(
+      `SELECT il.*, ft.name AS fabric_type
+       FROM invoice_lines il JOIN fabric_types ft ON ft.id = il.fabric_type_id
+       WHERE il.invoice_id = $1 ORDER BY ft.name`,
+      [req.params.id]
+    ),
+  ]);
+  if (!hdr.rows[0]) return res.status(404).json({ error: 'Invoice not found' });
+  res.json({ ...hdr.rows[0], lines: lines.rows });
 });
 
 // PATCH /api/invoices/:id/status  (admin only)

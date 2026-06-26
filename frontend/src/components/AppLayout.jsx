@@ -2,19 +2,18 @@ import React, { useState } from 'react';
 import { Layout, Menu, Button, Avatar, Typography, Space } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
-  DashboardOutlined, TeamOutlined, InboxOutlined,
-  ToolOutlined, FileTextOutlined, LogoutOutlined,
+  DashboardOutlined, TeamOutlined, BgColorsOutlined,
+  FileTextOutlined, LogoutOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../hooks/useAuth';
 
 const { Header, Sider, Content } = Layout;
 
 const menuItems = [
-  { key: '/',               icon: <DashboardOutlined />, label: 'Dashboard' },
-  { key: '/customers',      icon: <TeamOutlined />,      label: 'Customers' },
-  { key: '/yarn-receipts',  icon: <InboxOutlined />,     label: 'Yarn Receipts' },
-  { key: '/production-jobs',icon: <ToolOutlined />,      label: 'Production Jobs' },
-  { key: '/invoices',       icon: <FileTextOutlined />,  label: 'Invoices' },
+  { key: '/',             icon: <DashboardOutlined />, label: 'Dashboard' },
+  { key: '/customers',    icon: <TeamOutlined />,      label: 'Customers' },
+  { key: '/fabric-types', icon: <BgColorsOutlined />,  label: 'Fabric Types' },
+  { key: '/invoices',     icon: <FileTextOutlined />,  label: 'Invoices' },
 ];
 
 export default function AppLayout() {
@@ -32,7 +31,7 @@ export default function AppLayout() {
         <Menu
           theme="dark"
           mode="inline"
-          selectedKeys={[pathname]}
+          selectedKeys={['/' + (pathname.split('/')[1] || '')]}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
         />

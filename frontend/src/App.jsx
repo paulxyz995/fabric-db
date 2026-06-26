@@ -5,8 +5,8 @@ import LoginPage from './pages/LoginPage';
 import AppLayout from './components/AppLayout';
 import Dashboard from './pages/Dashboard';
 import Customers from './pages/Customers';
-import YarnReceipts from './pages/YarnReceipts';
-import ProductionJobs from './pages/ProductionJobs';
+import CustomerDetail from './pages/CustomerDetail';
+import FabricTypes from './pages/FabricTypes';
 import Invoices from './pages/Invoices';
 
 function PrivateRoute({ children }) {
@@ -29,10 +29,10 @@ export default function App() {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="customers"       element={<Customers />} />
-            <Route path="yarn-receipts"   element={<YarnReceipts />} />
-            <Route path="production-jobs" element={<ProductionJobs />} />
-            <Route path="invoices"        element={<Invoices />} />
+            <Route path="customers"     element={<Customers />} />
+            <Route path="customers/:id" element={<CustomerDetail />} />
+            <Route path="fabric-types"  element={<FabricTypes />} />
+            <Route path="invoices"      element={<Invoices />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

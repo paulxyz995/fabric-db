@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Row, Col, Card, Statistic, Typography, Spin } from 'antd';
+import { Row, Col, Card, Statistic, Typography, Spin, Table } from 'antd';
 import {
-  ClockCircleOutlined, CheckCircleOutlined,
-  DollarOutlined, FileTextOutlined,
+  DropboxOutlined, DollarOutlined, FileTextOutlined, InboxOutlined,
 } from '@ant-design/icons';
 import api from '../utils/api';
 
@@ -22,44 +21,49 @@ export default function Dashboard() {
     <>
       <Typography.Title level={4}>Dashboard</Typography.Title>
 
-      <Typography.Text type="secondary">Production Jobs</Typography.Text>
+      <Typography.Text type="secondary">Production this month</Typography.Text>
       <Row gutter={[16, 16]} style={{ marginTop: 8, marginBottom: 24 }}>
-        <Col xs={12} sm={6}>
-          <Card><Statistic title="Pending"      value={data.jobs.pending}     prefix={<ClockCircleOutlined />} /></Card>
+        <Col xs={12} sm={8}>
+          <Card><Statistic title="Fabric Produced (kg)" value={fmt(data.production.total_kg)} prefix={<DropboxOutlined />} /></Card>
         </Col>
-        <Col xs={12} sm={6}>
-          <Card><Statistic title="In Progress"  value={data.jobs.in_progress} valueStyle={{ color: '#1677ff' }} /></Card>
+        <Col xs={12} sm={8}>
+          <Card><Statistic title="Rolls (gulungan)" value={fmt(data.production.total_rolls)} /></Card>
         </Col>
-        <Col xs={12} sm={6}>
-          <Card><Statistic title="Completed"    value={data.jobs.completed}   valueStyle={{ color: '#52c41a' }} prefix={<CheckCircleOutlined />} /></Card>
-        </Col>
-        <Col xs={12} sm={6}>
-          <Card><Statistic title="Dispatched"   value={data.jobs.dispatched} /></Card>
+        <Col xs={12} sm={8}>
+          <Card><Statistic title="Yarn Received (kg)" value={fmt(data.yarn.total_yarn_received_kg)} prefix={<InboxOutlined />} /></Card>
         </Col>
       </Row>
 
       <Typography.Text type="secondary">Invoices</Typography.Text>
       <Row gutter={[16, 16]} style={{ marginTop: 8, marginBottom: 24 }}>
         <Col xs={12} sm={6}>
-          <Card><Statistic title="Sent / Unpaid"  value={data.invoices.sent}    prefix={<FileTextOutlined />} /></Card>
+          <Card><Statistic title="Sent / Unpaid" value={data.invoices.sent} prefix={<FileTextOutlined />} /></Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card><Statistic title="Overdue"         value={data.invoices.overdue} valueStyle={{ color: '#ff4d4f' }} /></Card>
+          <Card><Statistic title="Overdue" value={data.invoices.overdue} valueStyle={{ color: '#ff4d4f' }} /></Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card><Statistic title="Total Billed"    value={`Rp ${fmt(data.invoices.total_billed)}`}  prefix={<DollarOutlined />} /></Card>
+          <Card><Statistic title="Outstanding" value={`Rp ${fmt(data.invoices.outstanding)}`} prefix={<DollarOutlined />} /></Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card><Statistic title="Total Paid"      value={`Rp ${fmt(data.invoices.total_paid)}`}   valueStyle={{ color: '#52c41a' }} /></Card>
+          <Card><Statistic title="Total Paid" value={`Rp ${fmt(data.invoices.total_paid)}`} valueStyle={{ color: '#52c41a' }} /></Card>
         </Col>
       </Row>
 
-      <Typography.Text type="secondary">Yarn received this month</Typography.Text>
-      <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
-        <Col xs={24} sm={8}>
-          <Card><Statistic title="Yarn Received (kg)" value={fmt(data.yarn.total_yarn_received_kg)} suffix="kg" /></Card>
-        </Col>
-      </Row>
+      <Typography.Text type="secondary">Top customers by production this month</Typography.Text>
+      <Card style={{ marginTop: 8 }}>
+        <Table
+          dataSource={data.top_customers}
+          rowKey="customer_name"
+          size="small"
+          pagination={false}
+          columns={[
+            { title: 'Customer', dataIndex: 'customer_name' },
+            { title: 'Fabric (kg)', dataIndex: 'total_kg', align: 'right', render: fmt },
+          ]}
+          locale={{ emptyText: 'No production recorded this month' }}
+        />
+      </Card>
     </>
   );
 }

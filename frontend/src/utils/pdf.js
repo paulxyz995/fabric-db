@@ -7,7 +7,7 @@ const fmtMonth = (m) => dayjs(m).format('MMM YYYY');
 
 // Shared report: monthly leftover (SISA) table + a detail table.
 // summary: [{month, yarn_in_kg, sent_kg, sent_rolls, leftover_kg}]
-export function exportReport({ title, customerName, periodLabel, summary, detailTitle, detailHead, detailBody }) {
+export function exportReport({ title, customerName, shortCode, monthKey, periodLabel, summary, detailTitle, detailHead, detailBody }) {
   const doc = new jsPDF();
 
   doc.setFontSize(15);
@@ -45,6 +45,9 @@ export function exportReport({ title, customerName, periodLabel, summary, detail
     headStyles: { fillColor: [82, 82, 82] },
   });
 
-  const safe = customerName.replace(/[^a-z0-9]+/gi, '_');
-  doc.save(`${title.replace(/\s+/g, '_')}_${safe}.pdf`);
+  // Filename: <Report>_<ShortCode>_<YYYY-MM>.pdf  (e.g. Yarn_Log_CFY_2026-06.pdf)
+  // Falls back to the company name + current period when short code / month are absent.
+  const tag = (shortCode || customerName || 'customer').replace(/[^a-z0-9]+/gi, '_');
+  const period = monthKey || dayjs().format('YYYY-MM');
+  doc.save(`${title.replace(/\s+/g, '_')}_${tag}_${period}.pdf`);
 }

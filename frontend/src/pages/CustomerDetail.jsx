@@ -48,7 +48,8 @@ export default function CustomerDetail() {
       const det = await api.get('/yarn-receipts', { params: { customer_id: id, from, to } });
       const sorted = [...det.data].sort((a, b) => dayjs(a.received_date) - dayjs(b.received_date));
       return {
-        title: 'Yarn Log', customerName: customer?.name || '', periodLabel,
+        title: 'Yarn Log', customerName: customer?.name || '',
+        shortCode: customer?.short_code || customer?.code, monthKey: month, periodLabel,
         summary: monthRow ? [monthRow] : [],
         detailTitle: 'Yarn Receipts (BENANG MASUK)',
         detailHead: ['Date', 'Source', 'Yarn Type', 'Bales', 'KG'],
@@ -62,7 +63,8 @@ export default function CustomerDetail() {
     const det = await api.get('/production', { params: { customer_id: id, month } });
     const sorted = [...det.data].sort((a, b) => dayjs(a.production_date) - dayjs(b.production_date));
     return {
-      title: 'Already Sent', customerName: customer?.name || '', periodLabel,
+      title: 'Already Sent', customerName: customer?.name || '',
+      shortCode: customer?.short_code || customer?.code, monthKey: month, periodLabel,
       summary: monthRow ? [monthRow] : [],
       detailTitle: 'Production Log (HASIL JADI)',
       detailHead: ['Date', 'Fabric', 'Rolls', 'KG'],
@@ -99,6 +101,7 @@ export default function CustomerDetail() {
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/customers')} />
         <Typography.Title level={4} style={{ margin: 0 }}>{customer?.name}</Typography.Title>
         <Tag>{customer?.code}</Tag>
+        {customer?.short_code && <Tag color="blue">{customer.short_code}</Tag>}
         <Button icon={<FilePdfOutlined />} onClick={() => openDownload('yarn')}>Download Yarn Log</Button>
         <Button icon={<FilePdfOutlined />} onClick={() => openDownload('production')}>Download Already sent</Button>
       </Space>

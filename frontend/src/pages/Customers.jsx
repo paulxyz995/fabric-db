@@ -42,6 +42,8 @@ export default function Customers() {
     { title: 'Code', dataIndex: 'code', width: 110 },
     { title: 'Name', dataIndex: 'name', ellipsis: true,
       render: (v) => <a>{v}</a> },
+    { title: 'Short', dataIndex: 'short_code', width: 90,
+      render: (v) => v ? <Tag>{v}</Tag> : <span style={{ color: '#bbb' }}>—</span> },
     { title: 'Contact', dataIndex: 'contact_person', ellipsis: true },
     { title: 'Phone', dataIndex: 'phone' },
     { title: 'Status', dataIndex: 'is_active', width: 90,
@@ -85,7 +87,11 @@ export default function Customers() {
             <Input placeholder="CUST-006" disabled={!!editing} />
           </Form.Item>
           <Form.Item name="name" label="Company Name" rules={[{ required: true }]}>
-            <Input />
+            <Input placeholder="e.g. Chia Fransdhika Yuan" />
+          </Form.Item>
+          <Form.Item name="short_code" label="Short Code / Nickname"
+            tooltip="Initial used in PDF filenames, e.g. LYB, FRS, CFY">
+            <Input placeholder="e.g. CFY" maxLength={20} />
           </Form.Item>
           <Form.Item name="contact_person" label="Contact Person"><Input /></Form.Item>
           <Form.Item name="phone" label="Phone"><Input /></Form.Item>

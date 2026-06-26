@@ -42,6 +42,7 @@ CREATE TABLE customers (
   id              SERIAL PRIMARY KEY,
   code            VARCHAR(20) NOT NULL UNIQUE,   -- e.g. CUST-001
   name            VARCHAR(150) NOT NULL,
+  short_code      VARCHAR(20),                   -- admin nickname/initial, e.g. LYB, FRS (used in PDF filenames)
   contact_person  VARCHAR(100),
   phone           VARCHAR(30),
   email           VARCHAR(150),

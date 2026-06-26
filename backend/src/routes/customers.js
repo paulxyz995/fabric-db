@@ -130,13 +130,13 @@ router.get('/:id/rates', async (req, res) => {
 
 // POST /api/customers  (admin only)
 router.post('/', adminOnly, async (req, res) => {
-  const { code, name, contact_person, phone, email, address } = req.body;
+  const { code, name, short_code, contact_person, phone, email, address } = req.body;
   if (!code || !name) return res.status(400).json({ error: 'code and name required' });
   try {
     const { rows } = await pool.query(
-      `INSERT INTO customers (code, name, contact_person, phone, email, address)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [code, name, contact_person, phone, email, address]
+      `INSERT INTO customers (code, name, short_code, contact_person, phone, email, address)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [code, name, short_code || null, contact_person, phone, email, address]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -147,11 +147,11 @@ router.post('/', adminOnly, async (req, res) => {
 
 // PUT /api/customers/:id  (admin only)
 router.put('/:id', adminOnly, async (req, res) => {
-  const { name, contact_person, phone, email, address, is_active } = req.body;
+  const { name, short_code, contact_person, phone, email, address, is_active } = req.body;
   const { rows } = await pool.query(
-    `UPDATE customers SET name=$1, contact_person=$2, phone=$3, email=$4, address=$5, is_active=$6
-     WHERE id=$7 RETURNING *`,
-    [name, contact_person, phone, email, address, is_active ?? true, req.params.id]
+    `UPDATE customers SET name=$1, short_code=$2, contact_person=$3, phone=$4, email=$5, address=$6, is_active=$7
+     WHERE id=$8 RETURNING *`,
+    [name, short_code || null, contact_person, phone, email, address, is_active ?? true, req.params.id]
   );
   if (!rows[0]) return res.status(404).json({ error: 'Customer not found' });
   res.json(rows[0]);

@@ -13,6 +13,7 @@ import { useAuth } from '../hooks/useAuth';
 import { exportSuratJalan, rincianGrid } from '../utils/suratJalanPdf';
 
 const fmt = (v) => Number(v ?? 0).toLocaleString('id-ID');
+const fmt2 = (v) => Number(v ?? 0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // Parse a free-text rincian box ("22.05 22.50, 22.3 ...") into clean weights.
 function parseItems(text) {
@@ -28,66 +29,68 @@ const itemsToText = (items) =>
     .map((v) => (typeof v === 'object' && v !== null ? v.kg : v))
     .join('\n');
 
-// ---------- On-screen rendering of the surat jalan (mirrors the PDF) ----------
-function SuratJalanDoc({ sj, company = 'MAKLOON' }) {
+// ---------- On-screen rendering of the surat jalan (mirrors the PDF / printed form) ----------
+// Continuous form: 24 cm x 14 cm. Rendered at 24:14 proportions.
+function SuratJalanDoc({ sj }) {
   const { matrix } = rincianGrid(sj.items);
-  const cellStyle = { border: '1px solid #888', padding: '4px 8px', textAlign: 'center', minWidth: 60 };
-  const fieldLabel = { fontWeight: 600, paddingRight: 6, whiteSpace: 'nowrap' };
+  const field = (label, val) => (
+    <div style={{ display: 'flex', gap: 6 }}>
+      <span style={{ width: 110, flexShrink: 0 }}>{label}</span>
+      <span>: {val || ''}</span>
+    </div>
+  );
   return (
-    <div style={{ background: '#fff', color: '#000', padding: 24, fontFamily: 'Arial, sans-serif', fontSize: 13 }}>
-      <div style={{ textAlign: 'center', marginBottom: 4 }}>
-        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: 1 }}>SURAT JALAN</div>
-        <div style={{ fontSize: 12 }}>{company}</div>
+    <div style={{
+      background: '#fff', color: '#000', fontFamily: 'Arial, sans-serif', fontSize: 13,
+      width: 720, height: 420, padding: 22, boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+    }}>
+      {/* Header fields */}
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div>
+          {field('Surat Jalan No', sj.number)}
+          {field('Jenis Kain', sj.jenis_kain)}
+        </div>
+        <div>
+          {field('Tanggal', sj.tanggal ? dayjs(sj.tanggal).format('DD MMMM YYYY') : '')}
+          {field('Kepada', sj.kepada)}
+        </div>
       </div>
-      <hr style={{ border: 0, borderTop: '1px solid #999', margin: '8px 0 14px' }} />
 
-      <table style={{ width: '100%', marginBottom: 16 }}>
-        <tbody>
-          <tr>
-            <td style={fieldLabel}>Surat Jalan No</td>
-            <td style={{ width: '40%' }}>: <b>{sj.number || '—'}</b></td>
-            <td style={fieldLabel}>Tanggal</td>
-            <td>: {sj.tanggal ? dayjs(sj.tanggal).format('DD MMMM YYYY') : '—'}</td>
-          </tr>
-          <tr>
-            <td style={fieldLabel}>Jenis Kain</td>
-            <td>: {sj.jenis_kain || '—'}</td>
-            <td style={fieldLabel}>Kepada</td>
-            <td>: {sj.kepada || '—'}</td>
-          </tr>
-        </tbody>
-      </table>
+      <hr style={{ border: 0, borderTop: '1px solid #000', width: '100%', margin: '10px 0 6px' }} />
 
-      <div style={{ fontWeight: 600, marginBottom: 6 }}>Rincian (kg)</div>
-      <table style={{ borderCollapse: 'collapse', marginBottom: 16 }}>
+      {/* Rincian */}
+      <div style={{ textAlign: 'center', fontWeight: 700, marginBottom: 8 }}>Rincian</div>
+      <table style={{ borderCollapse: 'collapse' }}>
         <tbody>
           {matrix.map((line, r) => (
             <tr key={r}>
               {line.map((v, c) => (
-                <td key={c} style={cellStyle}>{v == null ? '' : fmt(v)}</td>
+                <td key={c} style={{ padding: '1px 26px 1px 0', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                  {v == null ? '' : fmt2(v)}
+                </td>
               ))}
             </tr>
           ))}
         </tbody>
       </table>
 
-      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 24 }}>
-        <span style={{ marginRight: 32 }}>Total</span>
-        <span style={{ marginRight: 32 }}>{fmt(sj.total_rolls)} ROLL</span>
-        <span>{fmt(sj.total_kg)} KG</span>
-      </div>
+      {/* Total box */}
+      <table style={{ borderCollapse: 'collapse', marginTop: 14, fontWeight: 700 }}>
+        <tbody>
+          <tr>
+            <td style={{ border: '1px solid #000', padding: '4px 16px', textAlign: 'center' }}>Total</td>
+            <td style={{ border: '1px solid #000', padding: '4px 20px', textAlign: 'center' }}>{fmt(sj.total_rolls)} ROLL</td>
+            <td style={{ border: '1px solid #000', padding: '4px 20px', textAlign: 'center' }}>{fmt2(sj.total_kg)} KG</td>
+          </tr>
+        </tbody>
+      </table>
 
-      {sj.notes ? <div style={{ marginBottom: 16 }}>Catatan: {sj.notes}</div> : null}
+      {sj.notes ? <div style={{ marginTop: 8 }}>Catatan: {sj.notes}</div> : null}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 32 }}>
-        <div style={{ textAlign: 'center' }}>
-          <div>Tanda Terima,</div>
-          <div style={{ marginTop: 48 }}>(________________)</div>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <div>Hormat Kami,</div>
-          <div style={{ marginTop: 48 }}>(________________)</div>
-        </div>
+      {/* Signatures pinned to bottom */}
+      <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', paddingTop: 16 }}>
+        <span>Tanda Terima</span>
+        <span>Hormat Kami,</span>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import Customers from './pages/Customers';
 import CustomerDetail from './pages/CustomerDetail';
 import FabricTypes from './pages/FabricTypes';
 import Invoices from './pages/Invoices';
+import SuratJalan from './pages/SuratJalan';
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token');
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="customers/:id" element={<CustomerDetail />} />
             <Route path="fabric-types"  element={<FabricTypes />} />
             <Route path="invoices"      element={<Invoices />} />
+            <Route path="surat-jalan"   element={<SuratJalan />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

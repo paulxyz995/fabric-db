@@ -3,7 +3,7 @@ import { Layout, Menu, Button, Avatar, Typography, Space } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   DashboardOutlined, TeamOutlined, BgColorsOutlined,
-  FileTextOutlined, LogoutOutlined,
+  FileTextOutlined, LogoutOutlined, CarOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../hooks/useAuth';
 
@@ -14,6 +14,7 @@ const menuItems = [
   { key: '/customers',    icon: <TeamOutlined />,      label: 'Customers' },
   { key: '/fabric-types', icon: <BgColorsOutlined />,  label: 'Fabric Types' },
   { key: '/invoices',     icon: <FileTextOutlined />,  label: 'Invoices' },
+  { key: '/surat-jalan',  icon: <CarOutlined />,       label: 'Surat Jalan' },
 ];
 
 export default function AppLayout() {

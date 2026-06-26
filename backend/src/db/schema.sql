@@ -162,6 +162,30 @@ CREATE TABLE yarn_opening (
 );
 
 -- ============================================================
+-- SURAT JALAN (delivery note): printable doc with auto number
+-- Number = <prefix>-NNNNNN where prefix = customer short_code.
+-- Sequence runs per prefix; assigned when the doc is printed.
+-- items = JSON array of per-roll weights (kg); totals derived.
+-- ============================================================
+CREATE TABLE surat_jalan (
+  id           SERIAL PRIMARY KEY,
+  number       VARCHAR(30) UNIQUE,            -- e.g. LYB-000001
+  prefix       VARCHAR(20) NOT NULL,          -- customer short_code at print time
+  seq          INT NOT NULL,                  -- running number within prefix
+  customer_id  INT REFERENCES customers(id) ON DELETE SET NULL,
+  jenis_kain   VARCHAR(150),
+  tanggal      DATE NOT NULL DEFAULT CURRENT_DATE,
+  kepada       VARCHAR(200),                  -- tujuan / recipient
+  items        JSONB NOT NULL DEFAULT '[]',   -- array of roll weights (kg)
+  total_rolls  INT NOT NULL DEFAULT 0,
+  total_kg     NUMERIC(12, 3) NOT NULL DEFAULT 0,
+  notes        TEXT,
+  created_by   INT REFERENCES users(id),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (prefix, seq)
+);
+
+-- ============================================================
 -- INDEXES
 -- ============================================================
 CREATE INDEX idx_yarn_receipts_customer    ON yarn_receipts(customer_id);
@@ -173,6 +197,8 @@ CREATE INDEX idx_invoices_customer         ON invoices(customer_id);
 CREATE INDEX idx_invoices_status           ON invoices(status);
 CREATE INDEX idx_invoice_lines_invoice     ON invoice_lines(invoice_id);
 CREATE INDEX idx_yarn_opening_customer     ON yarn_opening(customer_id);
+CREATE INDEX idx_surat_jalan_prefix        ON surat_jalan(prefix);
+CREATE INDEX idx_surat_jalan_customer      ON surat_jalan(customer_id);
 
 -- ============================================================
 -- VIEWS

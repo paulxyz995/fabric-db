@@ -9,6 +9,7 @@ const fabricTypeRoutes = require('./routes/fabricTypes');
 const yarnRoutes       = require('./routes/yarnReceipts');
 const productionRoutes = require('./routes/production');
 const invoiceRoutes    = require('./routes/invoices');
+const suratJalanRoutes = require('./routes/suratJalan');
 const dashboardRoutes  = require('./routes/dashboard');
 
 const app = express();
@@ -26,6 +27,7 @@ app.use('/api/fabric-types',     fabricTypeRoutes);
 app.use('/api/yarn-receipts',    yarnRoutes);
 app.use('/api/production',        productionRoutes);
 app.use('/api/invoices',         invoiceRoutes);
+app.use('/api/surat-jalan',      suratJalanRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 

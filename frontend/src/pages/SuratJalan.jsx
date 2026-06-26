@@ -208,10 +208,13 @@ export default function SuratJalan() {
       let saved;
       if (editing) {
         saved = (await api.put(`/surat-jalan/${editing.id}`, payload)).data;
-        message.success(`Updated ${saved.number}`);
       } else {
         saved = (await api.post('/surat-jalan/issue', payload)).data;
-        message.success(`Issued ${saved.number}`);
+      }
+      if (saved.recorded_to_production) {
+        message.success(`${editing ? 'Updated' : 'Issued'} ${saved.number} · recorded ${fmt(saved.total_rolls)} roll / ${fmt2(saved.total_kg)} kg to Already Sent`);
+      } else {
+        message.warning(`${editing ? 'Updated' : 'Issued'} ${saved.number}, but NOT recorded to Already Sent — pick a customer (prefix) and a Jenis Kain that matches a fabric type`);
       }
       exportSuratJalan(saved);
       setPreviewOpen(false);

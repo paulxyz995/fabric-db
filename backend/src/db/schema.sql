@@ -109,6 +109,7 @@ CREATE TABLE production_records (
   roll_count      INT NOT NULL DEFAULT 0 CHECK (roll_count >= 0),   -- gulungan
   fabric_kg       NUMERIC(10, 3) NOT NULL CHECK (fabric_kg > 0),
   yarn_receipt_id INT REFERENCES yarn_receipts(id) ON DELETE SET NULL,
+  surat_jalan_id  INT,   -- set when auto-created from a Surat Jalan (FK added after surat_jalan table below)
   notes           TEXT,
   created_by      INT REFERENCES users(id),
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -185,6 +186,11 @@ CREATE TABLE surat_jalan (
   UNIQUE (prefix, seq)
 );
 
+-- Link production records created from a Surat Jalan (deleting the SJ removes its production)
+ALTER TABLE production_records
+  ADD CONSTRAINT fk_prod_surat_jalan
+  FOREIGN KEY (surat_jalan_id) REFERENCES surat_jalan(id) ON DELETE CASCADE;
+
 -- ============================================================
 -- INDEXES
 -- ============================================================
@@ -199,6 +205,7 @@ CREATE INDEX idx_invoice_lines_invoice     ON invoice_lines(invoice_id);
 CREATE INDEX idx_yarn_opening_customer     ON yarn_opening(customer_id);
 CREATE INDEX idx_surat_jalan_prefix        ON surat_jalan(prefix);
 CREATE INDEX idx_surat_jalan_customer      ON surat_jalan(customer_id);
+CREATE INDEX idx_prod_records_sj           ON production_records(surat_jalan_id);
 
 -- ============================================================
 -- VIEWS

@@ -100,6 +100,7 @@ export default function SuratJalan() {
   const { isAdmin } = useAuth();
   const [rows, setRows] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [fabricTypes, setFabricTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -120,6 +121,7 @@ export default function SuratJalan() {
   useEffect(() => {
     load();
     api.get('/customers').then((r) => setCustomers(r.data));
+    api.get('/fabric-types').then((r) => setFabricTypes(r.data));
   }, []);
 
   const items = parseItems(rincianText);
@@ -304,7 +306,11 @@ export default function SuratJalan() {
               <DatePicker style={{ width: '100%' }} format="DD MMM YYYY" allowClear={false} />
             </Form.Item>
             <Form.Item name="jenis_kain" label="Jenis Kain" style={{ flex: 1, minWidth: 240 }}>
-              <Input placeholder='e.g. BABYTERRY, Hyget 24"' />
+              <Select
+                showSearch allowClear placeholder="Select fabric type"
+                optionFilterProp="label"
+                options={fabricTypes.map((f) => ({ value: f.name, label: f.name }))}
+              />
             </Form.Item>
           </Space>
 

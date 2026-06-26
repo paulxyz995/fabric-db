@@ -245,15 +245,21 @@ function ProductionTab({ customerId, fabricTypes, isAdmin }) {
 function YarnTab({ customerId, isAdmin }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [month, setMonth] = useState(null);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form] = Form.useForm();
 
   const load = () => {
     setLoading(true);
-    api.get('/yarn-receipts', { params: { customer_id: customerId } }).then(r => setRows(r.data)).finally(() => setLoading(false));
+    const params = { customer_id: customerId };
+    if (month) {
+      params.from = month.startOf('month').format('YYYY-MM-DD');
+      params.to = month.endOf('month').format('YYYY-MM-DD');
+    }
+    api.get('/yarn-receipts', { params }).then(r => setRows(r.data)).finally(() => setLoading(false));
   };
-  useEffect(load, [customerId]);
+  useEffect(load, [customerId, month]);
 
   function openAdd() { setEditing(null); form.resetFields(); form.setFieldsValue({ received_date: dayjs(), source: 'customer' }); setOpen(true); }
   function openEdit(row) { setEditing(row); form.setFieldsValue({ ...row, received_date: dayjs(row.received_date) }); setOpen(true); }
@@ -277,10 +283,10 @@ function YarnTab({ customerId, isAdmin }) {
       render: d => dayjs(d).format('DD MMM YYYY'),
       sorter: (a, b) => dayjs(a.received_date).valueOf() - dayjs(b.received_date).valueOf() },
     { title: 'Source', dataIndex: 'source', width: 100, render: s => <Tag color={s === 'purchased' ? 'orange' : 'blue'}>{s === 'purchased' ? 'Bought' : 'Customer'}</Tag> },
-    { title: 'Yarn (BENANG MASUK)', dataIndex: 'yarn_type' },
-    { title: 'Bales', dataIndex: 'bale_count', width: 80, align: 'right' },
-    { title: 'KG', dataIndex: 'quantity_kg', width: 110, align: 'right', render: fmt },
-    { title: 'DO/Challan', dataIndex: 'delivery_note', ellipsis: true },
+    { title: 'Yarn (BENANG MASUK)', dataIndex: 'yarn_type', width: 220, ellipsis: true },
+    { title: 'Bales', dataIndex: 'bale_count', width: 90, align: 'right', render: v => v ?? '—' },
+    { title: 'KG', dataIndex: 'quantity_kg', width: 120, align: 'right', render: fmt },
+    { title: 'DO/Challan', dataIndex: 'delivery_note', ellipsis: true, render: v => v || '—' },
     ...(isAdmin ? [{ title: '', key: 'a', width: 90, render: (_, row) => (
       <Space>
         <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} />
@@ -294,6 +300,7 @@ function YarnTab({ customerId, isAdmin }) {
     <>
       <Space style={{ marginBottom: 12 }} wrap>
         {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>Log Yarn</Button>}
+        <DatePicker picker="month" placeholder="Filter month" value={month} onChange={setMonth} />
         <Typography.Text type="secondary">{rows.length} receipts · {fmt(totKg)} kg</Typography.Text>
       </Space>
       <Table dataSource={rows} columns={columns} rowKey="id" loading={loading} size="small" />

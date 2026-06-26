@@ -4,9 +4,33 @@ import dayjs from 'dayjs';
 
 const fmt = (v) => Number(v ?? 0).toLocaleString('id-ID');
 
-// Render a Surat Jalan (delivery note) PDF that mirrors the spreadsheet layout:
-// header (No / Tanggal / Jenis Kain / Kepada), Rincian grid of roll weights,
-// Total ROLL + KG, and Tanda Terima / Hormat Kami signature lines.
+// Normalize items (array of numbers, or [{kg}]) to a plain number array.
+export function itemWeights(items) {
+  return (Array.isArray(items) ? items : []).map((v) =>
+    typeof v === 'object' && v !== null ? Number(v.kg) : Number(v)
+  );
+}
+
+// Arrange weights into a grid that fills DOWN each column (like the Excel sheet).
+// 37 rolls -> 4 columns of 10. Returns { cols, rows, matrix:[row][col] }.
+export function rincianGrid(items) {
+  const arr = itemWeights(items);
+  const n = arr.length;
+  const cols = Math.min(6, Math.max(1, Math.ceil(n / 10)));
+  const rows = Math.max(1, Math.ceil(n / cols));
+  const matrix = [];
+  for (let r = 0; r < rows; r++) {
+    const line = [];
+    for (let c = 0; c < cols; c++) {
+      const idx = c * rows + r;
+      line.push(idx < n ? arr[idx] : null);
+    }
+    matrix.push(line);
+  }
+  return { cols, rows, matrix };
+}
+
+// Render a Surat Jalan (delivery note) PDF mirroring the spreadsheet layout.
 export function exportSuratJalan(sj, { company = 'MAKLOON' } = {}) {
   const doc = new jsPDF();
   const pageW = doc.internal.pageSize.getWidth();
@@ -18,59 +42,46 @@ export function exportSuratJalan(sj, { company = 'MAKLOON' } = {}) {
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text(company, pageW / 2, 24, { align: 'center' });
-
-  doc.setDrawColor(180);
+  doc.setDrawColor(150);
   doc.line(M, 28, pageW - M, 28);
 
-  // Header fields (two columns)
+  // Header fields: left column (No / Jenis Kain), right column (Tanggal / Kepada)
   doc.setFontSize(11);
-  const labelX = M, valX = M + 38;
-  const rightLabelX = pageW / 2 + 6, rightValX = pageW / 2 + 34;
-  let y = 38;
-  const row = (lL, lV, rL, rV) => {
-    doc.setFont('helvetica', 'bold'); doc.text(lL, labelX, y);
-    doc.setFont('helvetica', 'normal'); doc.text(`: ${lV ?? '-'}`, valX, y);
-    if (rL) {
-      doc.setFont('helvetica', 'bold'); doc.text(rL, rightLabelX, y);
-      doc.setFont('helvetica', 'normal'); doc.text(`: ${rV ?? '-'}`, rightValX, y);
-    }
-    y += 8;
+  const midX = pageW / 2 + 4;
+  let y = 37;
+  const field = (x, label, val, lw) => {
+    doc.setFont('helvetica', 'bold'); doc.text(label, x, y);
+    doc.setFont('helvetica', 'normal'); doc.text(`: ${val ?? '-'}`, x + lw, y);
   };
-  row('Surat Jalan No', sj.number, 'Tanggal', sj.tanggal ? dayjs(sj.tanggal).format('DD MMMM YYYY') : '-');
-  row('Jenis Kain', sj.jenis_kain, 'Kepada', sj.kepada);
+  field(M, 'Surat Jalan No', sj.number, 32);
+  field(midX, 'Tanggal', sj.tanggal ? dayjs(sj.tanggal).format('DD MMMM YYYY') : '-', 22);
+  y += 8;
+  field(M, 'Jenis Kain', sj.jenis_kain, 32);
+  field(midX, 'Kepada', sj.kepada, 22);
 
-  // Rincian grid: per-roll weights in 5 columns
-  const items = (Array.isArray(sj.items) ? sj.items : []).map((v) =>
-    typeof v === 'object' && v !== null ? Number(v.kg) : Number(v)
-  );
-  const COLS = 5;
-  const body = [];
-  for (let i = 0; i < items.length; i += COLS) {
-    const chunk = items.slice(i, i + COLS).map((n) => fmt(n));
-    while (chunk.length < COLS) chunk.push('');
-    body.push(chunk);
-  }
-  if (body.length === 0) body.push(Array(COLS).fill(''));
-
+  // Rincian grid (column-major fill)
+  y += 10;
   doc.setFont('helvetica', 'bold');
-  doc.text('Rincian (kg per roll)', M, y + 2);
+  doc.setFontSize(11);
+  doc.text('Rincian (kg)', M, y);
+
+  const { matrix } = rincianGrid(sj.items);
+  const body = matrix.map((line) => line.map((v) => (v == null ? '' : fmt(v))));
   autoTable(doc, {
-    startY: y + 5,
-    head: [['', '', '', '', '']],
+    startY: y + 3,
     body,
     theme: 'grid',
-    styles: { fontSize: 9, halign: 'center', cellPadding: 1.8 },
-    headStyles: { fillColor: [240, 240, 240], minCellHeight: 1 },
-    showHead: false,
+    styles: { fontSize: 9, halign: 'center', cellPadding: 2, lineColor: [120, 120, 120], lineWidth: 0.2 },
     margin: { left: M, right: M },
   });
 
   // Total line
-  let ty = doc.lastAutoTable.finalY + 8;
+  let ty = doc.lastAutoTable.finalY + 9;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
-  doc.text(`Total: ${fmt(sj.total_rolls)} ROLL`, M, ty);
-  doc.text(`${fmt(sj.total_kg)} KG`, pageW / 2, ty);
+  doc.text('Total', M, ty);
+  doc.text(`${fmt(sj.total_rolls)} ROLL`, M + 30, ty);
+  doc.text(`${fmt(sj.total_kg)} KG`, M + 80, ty);
 
   if (sj.notes) {
     ty += 8;
@@ -80,13 +91,13 @@ export function exportSuratJalan(sj, { company = 'MAKLOON' } = {}) {
   }
 
   // Signature blocks
-  const sigY = Math.max(ty + 30, doc.internal.pageSize.getHeight() - 45);
+  const sigY = Math.max(ty + 26, doc.internal.pageSize.getHeight() - 45);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
-  doc.text('Tanda Terima,', M + 10, sigY);
-  doc.text('Hormat Kami,', pageW - M - 50, sigY);
-  doc.text('(________________)', M, sigY + 28);
-  doc.text('(________________)', pageW - M - 60, sigY + 28);
+  doc.text('Tanda Terima,', M + 8, sigY);
+  doc.text('Hormat Kami,', pageW - M - 52, sigY);
+  doc.text('(________________)', M, sigY + 26);
+  doc.text('(________________)', pageW - M - 62, sigY + 26);
 
   doc.save(`SuratJalan_${sj.number || 'draft'}.pdf`);
 }

@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Table, Button, Drawer, Form, Input, Select, DatePicker, InputNumber,
+  Table, Button, Drawer, Modal, Form, Input, Select, DatePicker,
   Space, Typography, message, Tag, Popconfirm, Alert,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, FilePdfOutlined, PrinterOutlined } from '@ant-design/icons';
+import {
+  PlusOutlined, EditOutlined, DeleteOutlined, FilePdfOutlined,
+  PrinterOutlined, EyeOutlined,
+} from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
-import { exportSuratJalan } from '../utils/suratJalanPdf';
+import { exportSuratJalan, rincianGrid } from '../utils/suratJalanPdf';
 
 const fmt = (v) => Number(v ?? 0).toLocaleString('id-ID');
 
@@ -25,6 +28,71 @@ const itemsToText = (items) =>
     .map((v) => (typeof v === 'object' && v !== null ? v.kg : v))
     .join('\n');
 
+// ---------- On-screen rendering of the surat jalan (mirrors the PDF) ----------
+function SuratJalanDoc({ sj, company = 'MAKLOON' }) {
+  const { matrix } = rincianGrid(sj.items);
+  const cellStyle = { border: '1px solid #888', padding: '4px 8px', textAlign: 'center', minWidth: 60 };
+  const fieldLabel = { fontWeight: 600, paddingRight: 6, whiteSpace: 'nowrap' };
+  return (
+    <div style={{ background: '#fff', color: '#000', padding: 24, fontFamily: 'Arial, sans-serif', fontSize: 13 }}>
+      <div style={{ textAlign: 'center', marginBottom: 4 }}>
+        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: 1 }}>SURAT JALAN</div>
+        <div style={{ fontSize: 12 }}>{company}</div>
+      </div>
+      <hr style={{ border: 0, borderTop: '1px solid #999', margin: '8px 0 14px' }} />
+
+      <table style={{ width: '100%', marginBottom: 16 }}>
+        <tbody>
+          <tr>
+            <td style={fieldLabel}>Surat Jalan No</td>
+            <td style={{ width: '40%' }}>: <b>{sj.number || '—'}</b></td>
+            <td style={fieldLabel}>Tanggal</td>
+            <td>: {sj.tanggal ? dayjs(sj.tanggal).format('DD MMMM YYYY') : '—'}</td>
+          </tr>
+          <tr>
+            <td style={fieldLabel}>Jenis Kain</td>
+            <td>: {sj.jenis_kain || '—'}</td>
+            <td style={fieldLabel}>Kepada</td>
+            <td>: {sj.kepada || '—'}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style={{ fontWeight: 600, marginBottom: 6 }}>Rincian (kg)</div>
+      <table style={{ borderCollapse: 'collapse', marginBottom: 16 }}>
+        <tbody>
+          {matrix.map((line, r) => (
+            <tr key={r}>
+              {line.map((v, c) => (
+                <td key={c} style={cellStyle}>{v == null ? '' : fmt(v)}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 24 }}>
+        <span style={{ marginRight: 32 }}>Total</span>
+        <span style={{ marginRight: 32 }}>{fmt(sj.total_rolls)} ROLL</span>
+        <span>{fmt(sj.total_kg)} KG</span>
+      </div>
+
+      {sj.notes ? <div style={{ marginBottom: 16 }}>Catatan: {sj.notes}</div> : null}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 32 }}>
+        <div style={{ textAlign: 'center' }}>
+          <div>Tanda Terima,</div>
+          <div style={{ marginTop: 48 }}>(________________)</div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div>Hormat Kami,</div>
+          <div style={{ marginTop: 48 }}>(________________)</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SuratJalan() {
   const { isAdmin } = useAuth();
   const [rows, setRows] = useState([]);
@@ -36,6 +104,11 @@ export default function SuratJalan() {
   const [nextNumber, setNextNumber] = useState('');
   const [rincianText, setRincianText] = useState('');
   const [form] = Form.useForm();
+
+  // Preview modal
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const [previewMode, setPreviewMode] = useState('form'); // 'form' | 'reprint'
 
   const load = () => {
     setLoading(true);
@@ -74,7 +147,6 @@ export default function SuratJalan() {
     setOpen(true);
   }
 
-  // When customer changes, set prefix from short_code, prefill Kepada, preview next number
   async function onCustomerChange(id) {
     const c = customers.find((x) => x.id === id);
     if (!c) return;
@@ -87,6 +159,31 @@ export default function SuratJalan() {
         setNextNumber(r.data.number);
       } catch { setNextNumber(''); }
     }
+  }
+
+  // Build a doc object from the current form for preview
+  async function openPreviewFromForm() {
+    const v = await form.validateFields();
+    if (items.length === 0) { message.warning('Add at least one roll weight in Rincian'); return; }
+    setPreviewData({
+      number: editing ? editing.number : (nextNumber || `${v.prefix}-…`),
+      tanggal: v.tanggal?.format('YYYY-MM-DD'),
+      jenis_kain: v.jenis_kain,
+      kepada: v.kepada,
+      items,
+      total_rolls: totalRolls,
+      total_kg: totalKg,
+      notes: v.notes,
+    });
+    setPreviewMode('form');
+    setOpen(false);        // close drawer so the preview sits cleanly on top
+    setPreviewOpen(true);
+  }
+
+  function openPreviewFromRow(row) {
+    setPreviewData(row);
+    setPreviewMode('reprint');
+    setPreviewOpen(true);
   }
 
   async function issueAndPrint() {
@@ -112,6 +209,7 @@ export default function SuratJalan() {
         message.success(`Issued ${saved.number}`);
       }
       exportSuratJalan(saved);
+      setPreviewOpen(false);
       setOpen(false);
       load();
     } catch (err) {
@@ -132,9 +230,10 @@ export default function SuratJalan() {
     { title: 'Roll', dataIndex: 'total_rolls', width: 80, align: 'right', render: fmt },
     { title: 'KG', dataIndex: 'total_kg', width: 110, align: 'right', render: fmt },
     {
-      title: '', key: 'a', width: 140, align: 'right',
+      title: '', key: 'a', width: 170, align: 'right',
       render: (_, row) => (
         <Space>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => openPreviewFromRow(row)} />
           <Button size="small" icon={<FilePdfOutlined />} onClick={() => exportSuratJalan(row)} />
           {isAdmin && <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} />}
           {isAdmin && (
@@ -160,8 +259,8 @@ export default function SuratJalan() {
         title={editing ? `Edit ${editing.number}` : 'New Surat Jalan'}
         width={620} open={open} onClose={() => setOpen(false)}
         extra={
-          <Button type="primary" icon={<PrinterOutlined />} loading={saving} onClick={issueAndPrint}>
-            {editing ? 'Save & Print' : 'Issue & Print'}
+          <Button type="primary" icon={<EyeOutlined />} onClick={openPreviewFromForm}>
+            Preview
           </Button>
         }
       >
@@ -225,6 +324,37 @@ export default function SuratJalan() {
           </Form.Item>
         </Form>
       </Drawer>
+
+      <Modal
+        title="Preview Surat Jalan"
+        open={previewOpen}
+        onCancel={() => setPreviewOpen(false)}
+        width={800}
+        zIndex={1100}
+        footer={
+          previewMode === 'reprint'
+            ? [
+                <Button key="close" onClick={() => setPreviewOpen(false)}>Close</Button>,
+                <Button key="dl" type="primary" icon={<FilePdfOutlined />}
+                  onClick={() => { exportSuratJalan(previewData); setPreviewOpen(false); }}>
+                  Download PDF
+                </Button>,
+              ]
+            : [
+                <Button key="back" onClick={() => { setPreviewOpen(false); setOpen(true); }}>Back to edit</Button>,
+                <Button key="print" type="primary" icon={<PrinterOutlined />} loading={saving}
+                  onClick={issueAndPrint}>
+                  {editing ? 'Save & Print' : 'Issue & Print'}
+                </Button>,
+              ]
+        }
+      >
+        {previewData && (
+          <div style={{ border: '1px solid #eee', maxHeight: '70vh', overflow: 'auto' }}>
+            <SuratJalanDoc sj={previewData} />
+          </div>
+        )}
+      </Modal>
     </>
   );
 }

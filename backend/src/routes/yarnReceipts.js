@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const pool = require('../db/pool');
-const { adminOnly } = require('../middleware/auth');
+const { canWriteOps } = require('../middleware/auth');
 
 // GET /api/yarn-receipts
 router.get('/', async (req, res) => {
@@ -33,8 +33,8 @@ router.get('/:id', async (req, res) => {
   res.json(rows[0]);
 });
 
-// POST /api/yarn-receipts
-router.post('/', async (req, res) => {
+// POST /api/yarn-receipts  (owner + admin)
+router.post('/', canWriteOps, async (req, res) => {
   const { customer_id, received_date, source, yarn_type, yarn_color, bale_count, quantity_kg, delivery_note, notes } = req.body;
   if (!customer_id || !yarn_type || !quantity_kg) {
     return res.status(400).json({ error: 'customer_id, yarn_type, and quantity_kg are required' });
@@ -63,7 +63,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/yarn-receipts/:id  (admin only)
-router.put('/:id', adminOnly, async (req, res) => {
+router.put('/:id', canWriteOps, async (req, res) => {
   const { source, yarn_type, yarn_color, bale_count, quantity_kg, delivery_note, notes } = req.body;
   const { rows } = await pool.query(
     `UPDATE yarn_receipts SET source=$1, yarn_type=$2, yarn_color=$3, bale_count=$4, quantity_kg=$5, delivery_note=$6, notes=$7
@@ -75,7 +75,7 @@ router.put('/:id', adminOnly, async (req, res) => {
 });
 
 // DELETE /api/yarn-receipts/:id  (admin only — block if linked to production)
-router.delete('/:id', adminOnly, async (req, res) => {
+router.delete('/:id', canWriteOps, async (req, res) => {
   const { rows: used } = await pool.query(
     'SELECT 1 FROM production_records WHERE yarn_receipt_id = $1 LIMIT 1', [req.params.id]
   );

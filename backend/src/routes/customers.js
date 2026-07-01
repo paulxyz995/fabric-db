@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const pool = require('../db/pool');
-const { adminOnly } = require('../middleware/auth');
+const { canWriteOps, ownerOnly } = require('../middleware/auth');
 
 // GET /api/customers  (sorted by customer code/number)
 router.get('/', async (req, res) => {
@@ -84,7 +84,7 @@ router.get('/:id/openings', async (req, res) => {
 });
 
 // POST /api/customers/:id/opening — set/replace opening SISA for a month  (admin)
-router.post('/:id/opening', adminOnly, async (req, res) => {
+router.post('/:id/opening', canWriteOps, async (req, res) => {
   const { month, opening_kg } = req.body;
   if (!month || opening_kg == null) {
     return res.status(400).json({ error: 'month and opening_kg required' });
@@ -102,7 +102,7 @@ router.post('/:id/opening', adminOnly, async (req, res) => {
 });
 
 // DELETE /api/customers/:id/opening/:month — remove an opening override  (admin)
-router.delete('/:id/opening/:month', adminOnly, async (req, res) => {
+router.delete('/:id/opening/:month', canWriteOps, async (req, res) => {
   const m = `${req.params.month.slice(0, 7)}-01`;
   await pool.query('DELETE FROM yarn_opening WHERE customer_id = $1 AND month = $2', [req.params.id, m]);
   res.json({ ok: true });
@@ -129,7 +129,7 @@ router.get('/:id/rates', async (req, res) => {
 });
 
 // POST /api/customers  (admin only)
-router.post('/', adminOnly, async (req, res) => {
+router.post('/', canWriteOps, async (req, res) => {
   const { code, name, short_code, contact_person, phone, email, address } = req.body;
   if (!code || !name) return res.status(400).json({ error: 'code and name required' });
   try {
@@ -146,7 +146,7 @@ router.post('/', adminOnly, async (req, res) => {
 });
 
 // PUT /api/customers/:id  (admin only)
-router.put('/:id', adminOnly, async (req, res) => {
+router.put('/:id', canWriteOps, async (req, res) => {
   const { name, short_code, contact_person, phone, email, address, is_active } = req.body;
   const { rows } = await pool.query(
     `UPDATE customers SET name=$1, short_code=$2, contact_person=$3, phone=$4, email=$5, address=$6, is_active=$7
@@ -157,8 +157,8 @@ router.put('/:id', adminOnly, async (req, res) => {
   res.json(rows[0]);
 });
 
-// POST /api/customers/:id/rates  (admin only)
-router.post('/:id/rates', adminOnly, async (req, res) => {
+// POST /api/customers/:id/rates  (harga maklon = uang -> owner only)
+router.post('/:id/rates', ownerOnly, async (req, res) => {
   const { fabric_type_id, rate_per_kg, effective_from } = req.body;
   if (!rate_per_kg) return res.status(400).json({ error: 'rate_per_kg required' });
   const { rows } = await pool.query(

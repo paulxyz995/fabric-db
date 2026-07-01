@@ -1,6 +1,9 @@
 const router = require('express').Router();
 const pool = require('../db/pool');
-const { adminOnly } = require('../middleware/auth');
+const { ownerOnly } = require('../middleware/auth');
+
+// Semua data invoice = uang -> hanya owner (termasuk daftar & detail)
+router.use(ownerOnly);
 
 // Resolve the maklon rate for a (customer, fabric_type) on a given date.
 // Most specific (matching fabric_type) wins over the catch-all (NULL) rate.
@@ -19,7 +22,7 @@ async function resolveRate(client, customerId, fabricTypeId, onDate) {
 }
 
 // POST /api/invoices/preview  (admin) — compute line items WITHOUT saving
-router.post('/preview', adminOnly, async (req, res) => {
+router.post('/preview', ownerOnly, async (req, res) => {
   const { customer_id, period_start, period_end } = req.body;
   if (!customer_id || !period_start || !period_end) {
     return res.status(400).json({ error: 'customer_id, period_start, period_end required' });
@@ -62,7 +65,7 @@ router.post('/preview', adminOnly, async (req, res) => {
 });
 
 // POST /api/invoices/generate  (admin) — build + persist invoice with lines
-router.post('/generate', adminOnly, async (req, res) => {
+router.post('/generate', ownerOnly, async (req, res) => {
   const { customer_id, period_start, period_end, invoice_date, due_date, tax_percent } = req.body;
   if (!customer_id || !period_start || !period_end) {
     return res.status(400).json({ error: 'customer_id, period_start, period_end required' });
@@ -167,7 +170,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // PATCH /api/invoices/:id/status  (admin only)
-router.patch('/:id/status', adminOnly, async (req, res) => {
+router.patch('/:id/status', ownerOnly, async (req, res) => {
   const { status, paid_date } = req.body;
   const valid = ['draft', 'sent', 'paid', 'overdue', 'cancelled'];
   if (!valid.includes(status)) return res.status(400).json({ error: 'Invalid status' });

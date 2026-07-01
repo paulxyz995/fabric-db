@@ -3,25 +3,31 @@ import { Layout, Menu, Button, Avatar, Typography, Space } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   DashboardOutlined, TeamOutlined, BgColorsOutlined,
-  FileTextOutlined, LogoutOutlined, CarOutlined,
+  FileTextOutlined, LogoutOutlined, CarOutlined, UserSwitchOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../hooks/useAuth';
 
 const { Header, Sider, Content } = Layout;
 
-const menuItems = [
-  { key: '/',             icon: <DashboardOutlined />, label: 'Dashboard' },
-  { key: '/customers',    icon: <TeamOutlined />,      label: 'Customers' },
-  { key: '/fabric-types', icon: <BgColorsOutlined />,  label: 'Fabric Types' },
-  { key: '/invoices',     icon: <FileTextOutlined />,  label: 'Invoices' },
-  { key: '/surat-jalan',  icon: <CarOutlined />,       label: 'Surat Jalan' },
-];
+const ROLE_LABEL = { owner: 'Owner', admin: 'Admin', hr: 'HR' };
 
 export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, isOwner, canManageUsers } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+
+  // Menu disesuaikan dengan peran
+  const menuItems = [
+    { key: '/',             icon: <DashboardOutlined />, label: 'Dashboard' },
+    { key: '/customers',    icon: <TeamOutlined />,      label: 'Pelanggan' },
+    { key: '/fabric-types', icon: <BgColorsOutlined />,  label: 'Jenis Kain' },
+    { key: '/surat-jalan',  icon: <CarOutlined />,       label: 'Surat Jalan' },
+    // Invoice/pendapatan hanya owner
+    ...(isOwner ? [{ key: '/invoices', icon: <FileTextOutlined />, label: 'Invoice' }] : []),
+    // Kelola user hanya owner + HR
+    ...(canManageUsers ? [{ key: '/users', icon: <UserSwitchOutlined />, label: 'Pengguna' }] : []),
+  ];
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -42,11 +48,11 @@ export default function AppLayout() {
           <Space>
             <Avatar>{user?.name?.[0]?.toUpperCase()}</Avatar>
             <Typography.Text>{user?.name}</Typography.Text>
-            <Typography.Text type="secondary" style={{ textTransform: 'capitalize' }}>
-              ({user?.role})
+            <Typography.Text type="secondary">
+              ({ROLE_LABEL[user?.role] || user?.role})
             </Typography.Text>
             <Button icon={<LogoutOutlined />} type="text" onClick={logout}>
-              Logout
+              Keluar
             </Button>
           </Space>
         </Header>

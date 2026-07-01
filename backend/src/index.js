@@ -11,6 +11,7 @@ const productionRoutes = require('./routes/production');
 const invoiceRoutes    = require('./routes/invoices');
 const suratJalanRoutes = require('./routes/suratJalan');
 const dashboardRoutes  = require('./routes/dashboard');
+const userRoutes       = require('./routes/users');
 
 const app = express();
 app.use(cors());
@@ -28,6 +29,7 @@ app.use('/api/yarn-receipts',    yarnRoutes);
 app.use('/api/production',        productionRoutes);
 app.use('/api/invoices',         invoiceRoutes);
 app.use('/api/surat-jalan',      suratJalanRoutes);
+app.use('/api/users',            userRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 

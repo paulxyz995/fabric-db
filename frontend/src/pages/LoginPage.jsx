@@ -14,7 +14,7 @@ export default function LoginPage() {
       await login(email, password);
       navigate('/');
     } catch {
-      message.error('Invalid email or password');
+      message.error('Email atau password salah');
     } finally {
       setLoading(false);
     }
@@ -34,7 +34,7 @@ export default function LoginPage() {
             <Input.Password size="large" />
           </Form.Item>
           <Button type="primary" htmlType="submit" block size="large" loading={loading}>
-            Login
+            Masuk
           </Button>
         </Form>
       </Card>

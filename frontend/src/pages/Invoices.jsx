@@ -70,18 +70,18 @@ export default function Invoices() {
         due_date: values.due_date?.format('YYYY-MM-DD'),
         tax_percent: values.tax_percent,
       });
-      message.success('Invoice generated');
+      message.success('Invoice dibuat');
       setGenOpen(false);
       load();
     } catch (err) {
-      message.error(err.response?.data?.error || 'Failed to generate');
+      message.error(err.response?.data?.error || 'Gagal membuat invoice');
     } finally { setSaving(false); }
   }
 
   async function changeStatus(id, status) {
     const paid_date = status === 'paid' ? dayjs().format('YYYY-MM-DD') : null;
     await api.patch(`/invoices/${id}/status`, { status, paid_date });
-    message.success(`Marked ${status}`);
+    message.success(`Status diubah: ${status}`);
     load();
   }
 
@@ -91,18 +91,18 @@ export default function Invoices() {
   }
 
   const columns = [
-    { title: 'Invoice #', dataIndex: 'invoice_number', width: 130 },
-    { title: 'Customer', dataIndex: 'customer_name', ellipsis: true },
-    { title: 'Period', key: 'period', width: 170,
+    { title: 'No. Invoice', dataIndex: 'invoice_number', width: 130 },
+    { title: 'Pelanggan', dataIndex: 'customer_name', ellipsis: true },
+    { title: 'Periode', key: 'period', width: 170,
       render: (_, r) => `${dayjs(r.period_start).format('DD MMM')} – ${dayjs(r.period_end).format('DD MMM YYYY')}` },
-    { title: 'Date', dataIndex: 'invoice_date', width: 120, render: d => dayjs(d).format('DD MMM YYYY') },
+    { title: 'Tanggal', dataIndex: 'invoice_date', width: 120, render: d => dayjs(d).format('DD MMM YYYY') },
     { title: 'Total', dataIndex: 'total_amount', width: 150, align: 'right', render: fmt },
     { title: 'Status', dataIndex: 'status', width: 100, render: s => <Tag color={STATUS_COLOR[s]}>{s}</Tag> },
     {
       title: '', key: 'actions', width: 220,
       render: (_, row) => (
         <Space>
-          <Button size="small" onClick={() => openDetail(row.id)}>View</Button>
+          <Button size="small" onClick={() => openDetail(row.id)}>Lihat</Button>
           {isAdmin && (
             <Select size="small" style={{ width: 110 }} value={row.status}
               onChange={(s) => changeStatus(row.id, s)}
@@ -116,40 +116,40 @@ export default function Invoices() {
   return (
     <>
       <Space style={{ marginBottom: 16 }} align="center">
-        <Typography.Title level={4} style={{ margin: 0 }}>Invoices</Typography.Title>
-        {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openGen}>Generate Invoice</Button>}
+        <Typography.Title level={4} style={{ margin: 0 }}>Invoice</Typography.Title>
+        {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openGen}>Buat Invoice</Button>}
       </Space>
 
       <Table dataSource={invoices} columns={columns} rowKey="id" loading={loading} size="small" />
 
-      {/* Generate modal with preview */}
-      <Modal title="Generate Monthly Invoice" open={genOpen} onCancel={() => setGenOpen(false)}
+      {/* Modal buat invoice + pratinjau */}
+      <Modal title="Buat Invoice Bulanan" open={genOpen} onCancel={() => setGenOpen(false)}
         confirmLoading={saving} width={620}
         footer={[
-          <Button key="cancel" onClick={() => setGenOpen(false)}>Cancel</Button>,
-          <Button key="preview" onClick={doPreview}>Preview</Button>,
+          <Button key="cancel" onClick={() => setGenOpen(false)}>Batal</Button>,
+          <Button key="preview" onClick={doPreview}>Pratinjau</Button>,
           <Button key="gen" type="primary" loading={saving} onClick={doGenerate}
-            disabled={!preview || preview.lines.length === 0}>Generate</Button>,
+            disabled={!preview || preview.lines.length === 0}>Buat</Button>,
         ]}>
         <Form form={form} layout="vertical">
           <Space style={{ width: '100%' }} size="large">
-            <Form.Item name="customer_id" label="Customer" rules={[{ required: true }]} style={{ flex: 1, minWidth: 220 }}>
-              <Select showSearch optionFilterProp="label" style={{ width: 220 }}
+            <Form.Item name="customer_id" label="Pelanggan" rules={[{ required: true, message: 'Pilih pelanggan' }]} style={{ flex: 1, minWidth: 220 }}>
+              <Select showSearch optionFilterProp="label" style={{ width: 220 }} placeholder="Pilih pelanggan"
                 options={customers.map(c => ({ value: c.id, label: c.name }))}
                 onChange={() => setPreview(null)} />
             </Form.Item>
-            <Form.Item name="month" label="Month" rules={[{ required: true }]}>
+            <Form.Item name="month" label="Bulan" rules={[{ required: true, message: 'Pilih bulan' }]}>
               <DatePicker picker="month" onChange={() => setPreview(null)} />
             </Form.Item>
           </Space>
           <Space style={{ width: '100%' }} size="large">
-            <Form.Item name="invoice_date" label="Invoice Date" rules={[{ required: true }]}>
+            <Form.Item name="invoice_date" label="Tanggal Invoice" rules={[{ required: true }]}>
               <DatePicker />
             </Form.Item>
-            <Form.Item name="due_date" label="Due Date">
+            <Form.Item name="due_date" label="Jatuh Tempo">
               <DatePicker />
             </Form.Item>
-            <Form.Item name="tax_percent" label="Tax (%)">
+            <Form.Item name="tax_percent" label="Pajak (%)">
               <InputNumber min={0} max={100} />
             </Form.Item>
           </Space>
@@ -157,22 +157,22 @@ export default function Invoices() {
 
         {preview && (
           <>
-            <Divider>Preview</Divider>
+            <Divider>Pratinjau</Divider>
             {preview.missing_rates?.length > 0 && (
               <Alert type="warning" showIcon style={{ marginBottom: 12 }}
-                message={`No rate set for: ${preview.missing_rates.join(', ')} — these are excluded. Set rates in Customers → Rates.`} />
+                message={`Belum ada tarif untuk: ${preview.missing_rates.join(', ')} — dikecualikan. Atur tarif di Pelanggan → Tarif.`} />
             )}
             {preview.lines.length === 0
-              ? <Alert type="info" message="No billable production for this customer in this month." />
+              ? <Alert type="info" message="Tidak ada produksi yang bisa ditagih untuk pelanggan ini pada bulan tersebut." />
               : (
                 <Table size="small" pagination={false} rowKey="fabric_type_id"
                   dataSource={preview.lines}
                   columns={[
-                    { title: 'Fabric Type', dataIndex: 'fabric_type' },
-                    { title: 'Rolls', dataIndex: 'total_rolls', align: 'right' },
+                    { title: 'Jenis Kain', dataIndex: 'fabric_type' },
+                    { title: 'Roll', dataIndex: 'total_rolls', align: 'right' },
                     { title: 'KG', dataIndex: 'total_kg', align: 'right', render: v => Number(v).toLocaleString('id-ID') },
-                    { title: 'Rate/kg', dataIndex: 'rate_per_kg', align: 'right', render: fmt },
-                    { title: 'Amount', dataIndex: 'amount', align: 'right', render: fmt },
+                    { title: 'Tarif/kg', dataIndex: 'rate_per_kg', align: 'right', render: fmt },
+                    { title: 'Jumlah', dataIndex: 'amount', align: 'right', render: fmt },
                   ]}
                   summary={() => (
                     <Table.Summary.Row>
@@ -185,24 +185,24 @@ export default function Invoices() {
         )}
       </Modal>
 
-      {/* Detail modal */}
+      {/* Modal detail */}
       <Modal title={`Invoice ${detail?.invoice_number}`} open={!!detail}
         onCancel={() => setDetail(null)} footer={null} width={640}>
         {detail && (
           <>
             <Descriptions bordered size="small" column={2}>
-              <Descriptions.Item label="Customer">{detail.customer_name}</Descriptions.Item>
+              <Descriptions.Item label="Pelanggan">{detail.customer_name}</Descriptions.Item>
               <Descriptions.Item label="Status"><Tag color={STATUS_COLOR[detail.status]}>{detail.status}</Tag></Descriptions.Item>
-              <Descriptions.Item label="Period">{dayjs(detail.period_start).format('DD MMM')} – {dayjs(detail.period_end).format('DD MMM YYYY')}</Descriptions.Item>
-              <Descriptions.Item label="Invoice Date">{dayjs(detail.invoice_date).format('DD MMM YYYY')}</Descriptions.Item>
+              <Descriptions.Item label="Periode">{dayjs(detail.period_start).format('DD MMM')} – {dayjs(detail.period_end).format('DD MMM YYYY')}</Descriptions.Item>
+              <Descriptions.Item label="Tanggal Invoice">{dayjs(detail.invoice_date).format('DD MMM YYYY')}</Descriptions.Item>
             </Descriptions>
             <Table style={{ marginTop: 16 }} size="small" pagination={false} rowKey="id"
               dataSource={detail.lines}
               columns={[
-                { title: 'Fabric Type', dataIndex: 'fabric_type' },
+                { title: 'Jenis Kain', dataIndex: 'fabric_type' },
                 { title: 'KG', dataIndex: 'total_kg', align: 'right', render: v => Number(v).toLocaleString('id-ID') },
-                { title: 'Rate/kg', dataIndex: 'rate_per_kg', align: 'right', render: fmt },
-                { title: 'Amount', dataIndex: 'amount', align: 'right', render: fmt },
+                { title: 'Tarif/kg', dataIndex: 'rate_per_kg', align: 'right', render: fmt },
+                { title: 'Jumlah', dataIndex: 'amount', align: 'right', render: fmt },
               ]}
               summary={() => (
                 <>
@@ -211,7 +211,7 @@ export default function Invoices() {
                     <Table.Summary.Cell align="right">{fmt(detail.subtotal)}</Table.Summary.Cell>
                   </Table.Summary.Row>
                   <Table.Summary.Row>
-                    <Table.Summary.Cell colSpan={3}>Tax ({detail.tax_percent}%)</Table.Summary.Cell>
+                    <Table.Summary.Cell colSpan={3}>Pajak ({detail.tax_percent}%)</Table.Summary.Cell>
                     <Table.Summary.Cell align="right">{fmt(detail.tax_amount)}</Table.Summary.Cell>
                   </Table.Summary.Row>
                   <Table.Summary.Row>

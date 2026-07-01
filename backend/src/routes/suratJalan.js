@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const pool = require('../db/pool');
-const { adminOnly } = require('../middleware/auth');
+const { canWriteOps } = require('../middleware/auth');
 
 const pad6 = (n) => String(n).padStart(6, '0');
 const r3 = (n) => Math.round(Number(n || 0) * 1000) / 1000;
@@ -89,7 +89,7 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/surat-jalan/issue — assign the next number for the prefix and save (admin)
 // body: { prefix, customer_id, jenis_kain, tanggal, kepada, items, notes }
-router.post('/issue', adminOnly, async (req, res) => {
+router.post('/issue', canWriteOps, async (req, res) => {
   const prefix = String(req.body.prefix || '').trim().toUpperCase();
   if (!prefix) return res.status(400).json({ error: 'prefix (customer short code) required' });
 
@@ -132,7 +132,7 @@ router.post('/issue', adminOnly, async (req, res) => {
 });
 
 // PUT /api/surat-jalan/:id — edit an issued note (keeps its number) (admin)
-router.put('/:id', adminOnly, async (req, res) => {
+router.put('/:id', canWriteOps, async (req, res) => {
   const items = cleanItems(req.body.items);
   const total_rolls = items.length;
   const total_kg = r3(items.reduce((s, n) => s + n, 0));
@@ -162,7 +162,7 @@ router.put('/:id', adminOnly, async (req, res) => {
 });
 
 // DELETE /api/surat-jalan/:id (admin)
-router.delete('/:id', adminOnly, async (req, res) => {
+router.delete('/:id', canWriteOps, async (req, res) => {
   const { rowCount } = await pool.query('DELETE FROM surat_jalan WHERE id = $1', [req.params.id]);
   if (!rowCount) return res.status(404).json({ error: 'Surat Jalan not found' });
   res.json({ ok: true });

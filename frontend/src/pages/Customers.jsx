@@ -30,31 +30,31 @@ export default function Customers() {
     try {
       if (editing) await api.put(`/customers/${editing.id}`, { ...editing, ...values });
       else await api.post('/customers', values);
-      message.success(editing ? 'Updated' : 'Customer added');
+      message.success(editing ? 'Diperbarui' : 'Pelanggan ditambahkan');
       setModalOpen(false);
       load();
     } catch (err) {
-      message.error(err.response?.data?.error || 'Failed to save');
+      message.error(err.response?.data?.error || 'Gagal menyimpan');
     } finally { setSaving(false); }
   }
 
   const columns = [
-    { title: 'Code', dataIndex: 'code', width: 110 },
-    { title: 'Name', dataIndex: 'name', ellipsis: true,
+    { title: 'Kode', dataIndex: 'code', width: 110 },
+    { title: 'Nama', dataIndex: 'name', ellipsis: true,
       render: (v) => <a>{v}</a> },
-    { title: 'Short', dataIndex: 'short_code', width: 90,
+    { title: 'Inisial', dataIndex: 'short_code', width: 90,
       render: (v) => v ? <Tag>{v}</Tag> : <span style={{ color: '#bbb' }}>—</span> },
-    { title: 'Contact', dataIndex: 'contact_person', ellipsis: true },
-    { title: 'Phone', dataIndex: 'phone' },
+    { title: 'Kontak', dataIndex: 'contact_person', ellipsis: true },
+    { title: 'Telepon', dataIndex: 'phone' },
     { title: 'Status', dataIndex: 'is_active', width: 90,
-      render: (v) => <Tag color={v ? 'green' : 'red'}>{v ? 'Active' : 'Inactive'}</Tag> },
+      render: (v) => <Tag color={v ? 'green' : 'red'}>{v ? 'Aktif' : 'Nonaktif'}</Tag> },
     {
       title: '', key: 'actions', width: 130, align: 'right',
       render: (_, row) => (
         <Space onClick={(e) => e.stopPropagation()}>
           {isAdmin && <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} />}
           <Button size="small" type="link" onClick={() => navigate(`/customers/${row.id}`)}>
-            Open <RightOutlined />
+            Buka <RightOutlined />
           </Button>
         </Space>
       ),
@@ -64,8 +64,8 @@ export default function Customers() {
   return (
     <>
       <Space style={{ marginBottom: 16 }} align="center">
-        <Typography.Title level={4} style={{ margin: 0 }}>Customers</Typography.Title>
-        {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>Add Customer</Button>}
+        <Typography.Title level={4} style={{ margin: 0 }}>Pelanggan</Typography.Title>
+        {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>Tambah Pelanggan</Button>}
       </Space>
 
       <Table
@@ -80,26 +80,27 @@ export default function Customers() {
         })}
       />
 
-      <Modal title={editing ? 'Edit Customer' : 'Add Customer'} open={modalOpen}
-        onOk={onSave} onCancel={() => setModalOpen(false)} confirmLoading={saving}>
+      <Modal title={editing ? 'Ubah Pelanggan' : 'Tambah Pelanggan'} open={modalOpen}
+        onOk={onSave} onCancel={() => setModalOpen(false)} confirmLoading={saving}
+        okText="Simpan" cancelText="Batal">
         <Form form={form} layout="vertical">
-          <Form.Item name="code" label="Customer Code" rules={[{ required: true }]}>
+          <Form.Item name="code" label="Kode Pelanggan" rules={[{ required: true, message: 'Kode wajib diisi' }]}>
             <Input placeholder="CUST-006" disabled={!!editing} />
           </Form.Item>
-          <Form.Item name="name" label="Company Name" rules={[{ required: true }]}>
-            <Input placeholder="e.g. Chia Fransdhika Yuan" />
+          <Form.Item name="name" label="Nama Perusahaan" rules={[{ required: true, message: 'Nama wajib diisi' }]}>
+            <Input placeholder="mis. Chia Fransdhika Yuan" />
           </Form.Item>
-          <Form.Item name="short_code" label="Short Code / Nickname"
-            tooltip="Initial used in PDF filenames, e.g. LYB, FRS, CFY">
-            <Input placeholder="e.g. CFY" maxLength={20} />
+          <Form.Item name="short_code" label="Inisial / Nama Singkat"
+            tooltip="Inisial yang dipakai di nama file PDF, mis. LYB, FRS, CFY">
+            <Input placeholder="mis. CFY" maxLength={20} />
           </Form.Item>
-          <Form.Item name="contact_person" label="Contact Person"><Input /></Form.Item>
-          <Form.Item name="phone" label="Phone"><Input /></Form.Item>
+          <Form.Item name="contact_person" label="Nama Kontak"><Input /></Form.Item>
+          <Form.Item name="phone" label="Telepon"><Input /></Form.Item>
           <Form.Item name="email" label="Email"><Input type="email" /></Form.Item>
-          <Form.Item name="address" label="Address"><Input.TextArea rows={2} /></Form.Item>
+          <Form.Item name="address" label="Alamat"><Input.TextArea rows={2} /></Form.Item>
           {editing && (
             <Form.Item name="is_active" label="Status">
-              <Select options={[{ value: true, label: 'Active' }, { value: false, label: 'Inactive' }]} />
+              <Select options={[{ value: true, label: 'Aktif' }, { value: false, label: 'Nonaktif' }]} />
             </Form.Item>
           )}
         </Form>

@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const pool = require('../db/pool');
-const { adminOnly } = require('../middleware/auth');
+const { canWriteOps } = require('../middleware/auth');
 
 // GET /api/production  — flat daily log, filterable by customer + month
 // query: customer_id, month (YYYY-MM), from, to
@@ -40,7 +40,7 @@ router.get('/summary', async (req, res) => {
 });
 
 // POST /api/production  (admin only)
-router.post('/', adminOnly, async (req, res) => {
+router.post('/', canWriteOps, async (req, res) => {
   const { customer_id, production_date, fabric_type_id, roll_count, fabric_kg, yarn_receipt_id, notes } = req.body;
   if (!customer_id || !fabric_type_id || !fabric_kg) {
     return res.status(400).json({ error: 'customer_id, fabric_type_id, and fabric_kg are required' });
@@ -60,7 +60,7 @@ router.post('/', adminOnly, async (req, res) => {
 });
 
 // PUT /api/production/:id  (admin only)
-router.put('/:id', adminOnly, async (req, res) => {
+router.put('/:id', canWriteOps, async (req, res) => {
   const { customer_id, production_date, fabric_type_id, roll_count, fabric_kg, notes } = req.body;
   const { rows } = await pool.query(
     `UPDATE production_records
@@ -73,7 +73,7 @@ router.put('/:id', adminOnly, async (req, res) => {
 });
 
 // DELETE /api/production/:id  (admin only)
-router.delete('/:id', adminOnly, async (req, res) => {
+router.delete('/:id', canWriteOps, async (req, res) => {
   const { rowCount } = await pool.query('DELETE FROM production_records WHERE id = $1', [req.params.id]);
   if (!rowCount) return res.status(404).json({ error: 'Record not found' });
   res.json({ ok: true });

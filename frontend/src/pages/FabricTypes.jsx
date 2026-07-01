@@ -28,33 +28,33 @@ export default function FabricTypes() {
     try {
       if (editing) await api.put(`/fabric-types/${editing.id}`, values);
       else await api.post('/fabric-types', values);
-      message.success(editing ? 'Updated' : 'Added');
+      message.success(editing ? 'Diperbarui' : 'Ditambahkan');
       setModalOpen(false);
       load();
     } catch (err) {
-      message.error(err.response?.data?.error || 'Failed');
+      message.error(err.response?.data?.error || 'Gagal');
     } finally { setSaving(false); }
   }
 
   async function onDelete(id) {
     try {
       await api.delete(`/fabric-types/${id}`);
-      message.success('Deleted');
+      message.success('Dihapus');
       load();
     } catch (err) {
-      message.error(err.response?.data?.error || 'Failed');
+      message.error(err.response?.data?.error || 'Gagal');
     }
   }
 
   const columns = [
-    { title: 'Fabric Type', dataIndex: 'name', width: 200 },
-    { title: 'Description', dataIndex: 'description', ellipsis: true },
+    { title: 'Jenis Kain', dataIndex: 'name', width: 200 },
+    { title: 'Keterangan', dataIndex: 'description', ellipsis: true },
     ...(isAdmin ? [{
       title: '', key: 'actions', width: 120,
       render: (_, row) => (
         <Space>
           <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} />
-          <Popconfirm title="Delete this fabric type?" onConfirm={() => onDelete(row.id)}>
+          <Popconfirm title="Hapus jenis kain ini?" okText="Hapus" cancelText="Batal" onConfirm={() => onDelete(row.id)}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
@@ -65,19 +65,20 @@ export default function FabricTypes() {
   return (
     <>
       <Space style={{ marginBottom: 16 }} align="center">
-        <Typography.Title level={4} style={{ margin: 0 }}>Fabric Types</Typography.Title>
-        {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>Add Fabric Type</Button>}
+        <Typography.Title level={4} style={{ margin: 0 }}>Jenis Kain</Typography.Title>
+        {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>Tambah Jenis Kain</Button>}
       </Space>
 
       <Table dataSource={types} columns={columns} rowKey="id" loading={loading} size="small" />
 
-      <Modal title={editing ? 'Edit Fabric Type' : 'Add Fabric Type'} open={modalOpen}
-        onOk={onSave} onCancel={() => setModalOpen(false)} confirmLoading={saving}>
+      <Modal title={editing ? 'Ubah Jenis Kain' : 'Tambah Jenis Kain'} open={modalOpen}
+        onOk={onSave} onCancel={() => setModalOpen(false)} confirmLoading={saving}
+        okText="Simpan" cancelText="Batal">
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Name" rules={[{ required: true }]}>
-            <Input placeholder="e.g. LOTTO, HYGET, RIB" />
+          <Form.Item name="name" label="Nama" rules={[{ required: true, message: 'Nama wajib diisi' }]}>
+            <Input placeholder="mis. LOTTO, HYGET, RIB" />
           </Form.Item>
-          <Form.Item name="description" label="Description">
+          <Form.Item name="description" label="Keterangan">
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>

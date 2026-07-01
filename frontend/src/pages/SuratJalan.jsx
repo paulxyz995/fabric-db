@@ -169,7 +169,7 @@ export default function SuratJalan() {
   // Build a doc object from the current form for preview
   async function openPreviewFromForm() {
     const v = await form.validateFields();
-    if (items.length === 0) { message.warning('Add at least one roll weight in Rincian'); return; }
+    if (items.length === 0) { message.warning('Tambahkan minimal satu berat roll di Rincian'); return; }
     setPreviewData({
       number: editing ? editing.number : (nextNumber || `${v.prefix}-…`),
       tanggal: v.tanggal?.format('YYYY-MM-DD'),
@@ -193,7 +193,7 @@ export default function SuratJalan() {
 
   async function issueAndPrint() {
     const v = await form.validateFields();
-    if (items.length === 0) { message.warning('Add at least one roll weight in Rincian'); return; }
+    if (items.length === 0) { message.warning('Tambahkan minimal satu berat roll di Rincian'); return; }
     setSaving(true);
     try {
       const payload = {
@@ -212,22 +212,22 @@ export default function SuratJalan() {
         saved = (await api.post('/surat-jalan/issue', payload)).data;
       }
       if (saved.recorded_to_production) {
-        message.success(`${editing ? 'Updated' : 'Issued'} ${saved.number} · recorded ${fmt(saved.total_rolls)} roll / ${fmt2(saved.total_kg)} kg to Already Sent`);
+        message.success(`${editing ? 'Diperbarui' : 'Diterbitkan'} ${saved.number} · tercatat ${fmt(saved.total_rolls)} roll / ${fmt2(saved.total_kg)} kg ke Sudah Terkirim`);
       } else {
-        message.warning(`${editing ? 'Updated' : 'Issued'} ${saved.number}, but NOT recorded to Already Sent — pick a customer (prefix) and a Jenis Kain that matches a fabric type`);
+        message.warning(`${editing ? 'Diperbarui' : 'Diterbitkan'} ${saved.number}, tapi TIDAK tercatat ke Sudah Terkirim — pilih pelanggan (prefix) dan Jenis Kain yang cocok dengan daftar jenis kain`);
       }
       exportSuratJalan(saved);
       setPreviewOpen(false);
       setOpen(false);
       load();
     } catch (err) {
-      message.error(err.response?.data?.error || 'Failed to issue');
+      message.error(err.response?.data?.error || 'Gagal menerbitkan');
     } finally { setSaving(false); }
   }
 
   async function del(id) {
-    try { await api.delete(`/surat-jalan/${id}`); message.success('Deleted'); load(); }
-    catch (err) { message.error(err.response?.data?.error || 'Failed'); }
+    try { await api.delete(`/surat-jalan/${id}`); message.success('Dihapus'); load(); }
+    catch (err) { message.error(err.response?.data?.error || 'Gagal'); }
   }
 
   const columns = [
@@ -245,7 +245,7 @@ export default function SuratJalan() {
           <Button size="small" icon={<FilePdfOutlined />} onClick={() => exportSuratJalan(row)} />
           {isAdmin && <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} />}
           {isAdmin && (
-            <Popconfirm title="Delete this surat jalan?" onConfirm={() => del(row.id)}>
+            <Popconfirm title="Hapus surat jalan ini?" okText="Hapus" cancelText="Batal" onConfirm={() => del(row.id)}>
               <Button size="small" danger icon={<DeleteOutlined />} />
             </Popconfirm>
           )}
@@ -258,17 +258,17 @@ export default function SuratJalan() {
     <>
       <Space style={{ marginBottom: 16 }} align="center">
         <Typography.Title level={4} style={{ margin: 0 }}>Surat Jalan</Typography.Title>
-        {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openNew}>New Surat Jalan</Button>}
+        {isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={openNew}>Surat Jalan Baru</Button>}
       </Space>
 
       <Table dataSource={rows} columns={columns} rowKey="id" loading={loading} size="small" />
 
       <Drawer
-        title={editing ? `Edit ${editing.number}` : 'New Surat Jalan'}
+        title={editing ? `Ubah ${editing.number}` : 'Surat Jalan Baru'}
         width={620} open={open} onClose={() => setOpen(false)}
         extra={
           <Button type="primary" icon={<EyeOutlined />} onClick={openPreviewFromForm}>
-            Preview
+            Pratinjau
           </Button>
         }
       >
@@ -276,15 +276,15 @@ export default function SuratJalan() {
           <Alert
             style={{ marginBottom: 16 }} type="info" showIcon
             message={<>Nomor Surat Jalan: <b>{nextNumber}</b></>}
-            description={editing ? 'Number stays the same when you save.' : 'Assigned automatically when you Issue & Print. Pick a customer to change the prefix.'}
+            description={editing ? 'Nomor tetap sama saat disimpan.' : 'Diberikan otomatis saat Terbitkan & Cetak. Pilih pelanggan untuk mengubah prefix.'}
           />
         )}
         <Form form={form} layout="vertical">
           <Space style={{ display: 'flex' }} align="start">
-            <Form.Item name="customer_id" label="Customer (sets prefix)" style={{ flex: 1, minWidth: 260 }}>
+            <Form.Item name="customer_id" label="Pelanggan (menentukan prefix)" style={{ flex: 1, minWidth: 260 }}>
               <Select
                 showSearch optionFilterProp="label" allowClear
-                placeholder="Pick customer"
+                placeholder="Pilih pelanggan"
                 onChange={onCustomerChange}
                 options={customers.map((c) => ({
                   value: c.id,
@@ -292,8 +292,8 @@ export default function SuratJalan() {
                 }))}
               />
             </Form.Item>
-            <Form.Item name="prefix" label="Prefix (nickname)" rules={[{ required: true, message: 'prefix required' }]} style={{ width: 140 }}
-              tooltip="Used as the surat jalan number prefix, e.g. LYB-000001">
+            <Form.Item name="prefix" label="Prefix (inisial)" rules={[{ required: true, message: 'Prefix wajib diisi' }]} style={{ width: 140 }}
+              tooltip="Dipakai sebagai prefix nomor surat jalan, mis. LYB-000001">
               <Input placeholder="LYB" maxLength={20} style={{ textTransform: 'uppercase' }}
                 onChange={(e) => {
                   const p = e.target.value.toUpperCase();
@@ -310,19 +310,19 @@ export default function SuratJalan() {
             </Form.Item>
             <Form.Item name="jenis_kain" label="Jenis Kain" style={{ flex: 1, minWidth: 240 }}>
               <Select
-                showSearch allowClear placeholder="Select fabric type"
+                showSearch allowClear placeholder="Pilih jenis kain"
                 optionFilterProp="label"
                 options={fabricTypes.map((f) => ({ value: f.name, label: f.name }))}
               />
             </Form.Item>
           </Space>
 
-          <Form.Item name="kepada" label="Kepada (Tujuan)" tooltip="Destination / recipient — edit freely">
-            <Input placeholder="e.g. CV Tekad Jaya" />
+          <Form.Item name="kepada" label="Kepada (Tujuan)" tooltip="Tujuan / penerima — bisa diubah bebas">
+            <Input placeholder="mis. CV Tekad Jaya" />
           </Form.Item>
 
-          <Form.Item label={`Rincian — roll weights in kg (${totalRolls} rolls · ${fmt(totalKg)} kg)`}
-            tooltip="One weight per roll. Separate with spaces, commas, or new lines. You can paste a column straight from Excel.">
+          <Form.Item label={`Rincian — berat roll dalam kg (${totalRolls} roll · ${fmt(totalKg)} kg)`}
+            tooltip="Satu berat per roll. Pisahkan dengan spasi, koma, atau baris baru. Bisa tempel langsung satu kolom dari Excel.">
             <Input.TextArea
               rows={8}
               value={rincianText}
@@ -331,14 +331,14 @@ export default function SuratJalan() {
             />
           </Form.Item>
 
-          <Form.Item name="notes" label="Catatan (optional)">
+          <Form.Item name="notes" label="Catatan (opsional)">
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>
       </Drawer>
 
       <Modal
-        title="Preview Surat Jalan"
+        title="Pratinjau Surat Jalan"
         open={previewOpen}
         onCancel={() => setPreviewOpen(false)}
         width={800}
@@ -346,17 +346,17 @@ export default function SuratJalan() {
         footer={
           previewMode === 'reprint'
             ? [
-                <Button key="close" onClick={() => setPreviewOpen(false)}>Close</Button>,
+                <Button key="close" onClick={() => setPreviewOpen(false)}>Tutup</Button>,
                 <Button key="dl" type="primary" icon={<FilePdfOutlined />}
                   onClick={() => { exportSuratJalan(previewData); setPreviewOpen(false); }}>
-                  Download PDF
+                  Unduh PDF
                 </Button>,
               ]
             : [
-                <Button key="back" onClick={() => { setPreviewOpen(false); setOpen(true); }}>Back to edit</Button>,
+                <Button key="back" onClick={() => { setPreviewOpen(false); setOpen(true); }}>Kembali ubah</Button>,
                 <Button key="print" type="primary" icon={<PrinterOutlined />} loading={saving}
                   onClick={issueAndPrint}>
-                  {editing ? 'Save & Print' : 'Issue & Print'}
+                  {editing ? 'Simpan & Cetak' : 'Terbitkan & Cetak'}
                 </Button>,
               ]
         }

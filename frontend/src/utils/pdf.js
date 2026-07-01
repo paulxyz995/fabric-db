@@ -15,15 +15,15 @@ export function exportReport({ title, customerName, shortCode, monthKey, periodL
   doc.setFontSize(10);
   doc.setTextColor(90);
   doc.text(`${customerName}`, 14, 23);
-  doc.text(`Generated ${dayjs().format('DD MMM YYYY HH:mm')}`, 14, 28);
+  doc.text(`Dibuat ${dayjs().format('DD MMM YYYY HH:mm')}`, 14, 28);
   doc.setTextColor(0);
 
-  // Monthly leftover (SISA BENANG): Net = in - sent (this month); Running = carryover
+  // Sisa benang bulanan (SISA BENANG): Selisih = masuk - terkirim; Akhir = terbawa
   doc.setFontSize(11);
-  doc.text('Leftover Yarn (SISA)', 14, 37);
+  doc.text('Sisa Benang (SISA)', 14, 37);
   autoTable(doc, {
     startY: 40,
-    head: [['Month', 'Opening (kg)', 'Yarn In (kg)', 'Sent (kg)', 'Sent (rolls)', 'Net (kg)', 'Closing SISA (kg)']],
+    head: [['Bulan', 'Awal (kg)', 'Benang Masuk (kg)', 'Terkirim (kg)', 'Terkirim (roll)', 'Selisih (kg)', 'Sisa Akhir (kg)']],
     body: summary.map((s) => [
       fmtMonth(s.month), fmt(s.opening_kg ?? 0), fmt(s.yarn_in_kg), fmt(s.sent_kg), fmt(s.sent_rolls),
       fmt(s.net_kg ?? (s.yarn_in_kg - s.sent_kg)), fmt(s.leftover_kg),

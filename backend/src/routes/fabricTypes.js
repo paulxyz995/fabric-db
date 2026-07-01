@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const pool = require('../db/pool');
-const { adminOnly } = require('../middleware/auth');
+const { canWriteOps } = require('../middleware/auth');
 
 // GET /api/fabric-types
 router.get('/', async (req, res) => {
@@ -9,7 +9,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/fabric-types  (admin only)
-router.post('/', adminOnly, async (req, res) => {
+router.post('/', canWriteOps, async (req, res) => {
   const { name, description } = req.body;
   if (!name) return res.status(400).json({ error: 'name required' });
   try {
@@ -25,7 +25,7 @@ router.post('/', adminOnly, async (req, res) => {
 });
 
 // PUT /api/fabric-types/:id  (admin only)
-router.put('/:id', adminOnly, async (req, res) => {
+router.put('/:id', canWriteOps, async (req, res) => {
   const { name, description } = req.body;
   const { rows } = await pool.query(
     'UPDATE fabric_types SET name=$1, description=$2 WHERE id=$3 RETURNING *',
@@ -36,7 +36,7 @@ router.put('/:id', adminOnly, async (req, res) => {
 });
 
 // DELETE /api/fabric-types/:id  (admin only — block if in use)
-router.delete('/:id', adminOnly, async (req, res) => {
+router.delete('/:id', canWriteOps, async (req, res) => {
   try {
     const { rows: used } = await pool.query(
       'SELECT 1 FROM production_records WHERE fabric_type_id = $1 LIMIT 1',

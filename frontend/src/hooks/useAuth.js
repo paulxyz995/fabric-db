@@ -20,5 +20,19 @@ export function useAuth() {
     setUser(null);
   }
 
-  return { user, login, logout, isAdmin: user?.role === 'admin' };
+  const role = user?.role;
+  return {
+    user,
+    login,
+    logout,
+    role,
+    isOwner: role === 'owner',
+    isHr: role === 'hr',
+    // Bisa input data operasional (pelanggan, benang, produksi, surat jalan)
+    canWriteOps: role === 'owner' || role === 'admin',
+    // Bisa kelola user (tambah admin)
+    canManageUsers: role === 'owner' || role === 'hr',
+    // Alias lama: dipakai tombol tambah/edit/hapus data operasional
+    isAdmin: role === 'owner' || role === 'admin',
+  };
 }

@@ -30,7 +30,7 @@ CREATE TABLE users (
   name          VARCHAR(100) NOT NULL,
   email         VARCHAR(150) NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  role          VARCHAR(20) NOT NULL DEFAULT 'hr' CHECK (role IN ('admin', 'hr')),
+  role          VARCHAR(20) NOT NULL DEFAULT 'admin' CHECK (role IN ('owner', 'admin', 'hr')),
   is_active     BOOLEAN NOT NULL DEFAULT true,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

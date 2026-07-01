@@ -13,10 +13,10 @@ INSERT INTO users (name, email, password_hash, role) VALUES
   ('Admin',    'admin@company.com', crypt('Admin@123', gen_salt('bf')), 'admin'),
   ('HR Staff', 'hr@company.com',    crypt('Hr@123456', gen_salt('bf')), 'hr');
 
--- Active customers (from the cleaned workbook). Import matches by name.
-INSERT INTO customers (code, name) VALUES
-  ('CUST-001', 'LYBRATEX'),
-  ('CUST-002', 'SPR'),
-  ('CUST-003', 'MCH BARU'),
-  ('CUST-004', 'H YUSUP'),
-  ('CUST-005', 'CFY');
+-- Pelanggan contoh (dummy) — ganti/isi data asli lewat menu Pelanggan.
+INSERT INTO customers (code, name, short_code) VALUES
+  ('CUST-001', 'PT Contoh Tekstil',   'CTX'),
+  ('CUST-002', 'CV Sumber Kain',       'SBK'),
+  ('CUST-003', 'PT Maju Sandang',      'MJS'),
+  ('CUST-004', 'CV Rejeki Benang',     'RJB'),
+  ('CUST-005', 'PT Sentosa Fabric',    'STF');

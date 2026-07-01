@@ -54,9 +54,10 @@ async function syncProduction(client, sj, userId) {
 // GET /api/surat-jalan — list issued delivery notes (newest first)
 router.get('/', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT sj.*, c.name AS customer_name
+    `SELECT sj.*, c.name AS customer_name, b.name AS branch_name
      FROM surat_jalan sj
      LEFT JOIN customers c ON c.id = sj.customer_id
+     LEFT JOIN branches b ON b.id = sj.branch_id
      ORDER BY sj.created_at DESC, sj.id DESC`
   );
   res.json(rows);
@@ -77,9 +78,10 @@ router.get('/next-number', async (req, res) => {
 // GET /api/surat-jalan/:id
 router.get('/:id', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT sj.*, c.name AS customer_name
+    `SELECT sj.*, c.name AS customer_name, b.name AS branch_name
      FROM surat_jalan sj
      LEFT JOIN customers c ON c.id = sj.customer_id
+     LEFT JOIN branches b ON b.id = sj.branch_id
      WHERE sj.id = $1`,
     [req.params.id]
   );
@@ -96,7 +98,7 @@ router.post('/issue', canWriteOps, async (req, res) => {
   const items = cleanItems(req.body.items);
   const total_rolls = items.length;
   const total_kg = r3(items.reduce((s, n) => s + n, 0));
-  const { customer_id, jenis_kain, tanggal, kepada, notes } = req.body;
+  const { customer_id, branch_id, jenis_kain, tanggal, kepada, notes } = req.body;
 
   const client = await pool.connect();
   try {
@@ -112,10 +114,10 @@ router.post('/issue', canWriteOps, async (req, res) => {
 
     const { rows } = await client.query(
       `INSERT INTO surat_jalan
-         (number, prefix, seq, customer_id, jenis_kain, tanggal, kepada, items, total_rolls, total_kg, notes, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+         (number, prefix, seq, customer_id, branch_id, jenis_kain, tanggal, kepada, items, total_rolls, total_kg, notes, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
        RETURNING *`,
-      [number, prefix, seq, customer_id || null, jenis_kain || null,
+      [number, prefix, seq, customer_id || null, branch_id || null, jenis_kain || null,
        tanggal || new Date(), kepada || null, JSON.stringify(items),
        total_rolls, total_kg, notes || null, req.user.id]
     );
@@ -136,16 +138,16 @@ router.put('/:id', canWriteOps, async (req, res) => {
   const items = cleanItems(req.body.items);
   const total_rolls = items.length;
   const total_kg = r3(items.reduce((s, n) => s + n, 0));
-  const { customer_id, jenis_kain, tanggal, kepada, notes } = req.body;
+  const { customer_id, branch_id, jenis_kain, tanggal, kepada, notes } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
       `UPDATE surat_jalan
-         SET customer_id=$1, jenis_kain=$2, tanggal=$3, kepada=$4,
-             items=$5, total_rolls=$6, total_kg=$7, notes=$8
-       WHERE id=$9 RETURNING *`,
-      [customer_id || null, jenis_kain || null, tanggal || new Date(), kepada || null,
+         SET customer_id=$1, branch_id=$2, jenis_kain=$3, tanggal=$4, kepada=$5,
+             items=$6, total_rolls=$7, total_kg=$8, notes=$9
+       WHERE id=$10 RETURNING *`,
+      [customer_id || null, branch_id || null, jenis_kain || null, tanggal || new Date(), kepada || null,
        JSON.stringify(items), total_rolls, total_kg, notes || null, req.params.id]
     );
     if (!rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Surat Jalan not found' }); }

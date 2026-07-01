@@ -13,6 +13,11 @@ INSERT INTO users (name, email, password_hash, role) VALUES
   ('Admin',    'admin@company.com', crypt('Admin@123', gen_salt('bf')), 'admin'),
   ('HR Staff', 'hr@company.com',    crypt('Hr@123456', gen_salt('bf')), 'hr');
 
+-- Cabang produksi contoh (dummy) — ganti nama asli lewat menu Cabang.
+INSERT INTO branches (name) VALUES
+  ('Cabang 1'),
+  ('Cabang 2');
+
 -- Pelanggan contoh (dummy) — ganti/isi data asli lewat menu Pelanggan.
 INSERT INTO customers (code, name, short_code) VALUES
   ('CUST-001', 'PT Contoh Tekstil',   'CTX'),

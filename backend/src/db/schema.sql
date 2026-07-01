@@ -18,6 +18,7 @@ DROP TABLE IF EXISTS production_jobs       CASCADE;
 DROP TABLE IF EXISTS production_records    CASCADE;
 DROP TABLE IF EXISTS yarn_receipts         CASCADE;
 DROP TABLE IF EXISTS customer_rates        CASCADE;
+DROP TABLE IF EXISTS branches              CASCADE;
 DROP TABLE IF EXISTS fabric_types          CASCADE;
 DROP TABLE IF EXISTS customers             CASCADE;
 DROP TABLE IF EXISTS users                 CASCADE;
@@ -60,6 +61,17 @@ CREATE TABLE fabric_types (
   id          SERIAL PRIMARY KEY,
   name        VARCHAR(100) NOT NULL UNIQUE,
   description TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ============================================================
+-- BRANCHES (CABANG PRODUKSI) — cabang tempat kain diproduksi.
+-- Dipakai internal (dicatat di surat jalan), TIDAK dicetak di PDF.
+-- ============================================================
+CREATE TABLE branches (
+  id          SERIAL PRIMARY KEY,
+  name        VARCHAR(100) NOT NULL UNIQUE,
+  is_active   BOOLEAN NOT NULL DEFAULT true,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -176,6 +188,7 @@ CREATE TABLE surat_jalan (
   prefix       VARCHAR(20) NOT NULL,          -- customer short_code at print time
   seq          INT NOT NULL,                  -- running number within prefix
   customer_id  INT REFERENCES customers(id) ON DELETE SET NULL,
+  branch_id    INT REFERENCES branches(id) ON DELETE SET NULL,  -- cabang produksi (internal, tak dicetak)
   jenis_kain   VARCHAR(150),
   tanggal      DATE NOT NULL DEFAULT CURRENT_DATE,
   kepada       VARCHAR(200),                  -- tujuan / recipient
@@ -230,6 +243,7 @@ CREATE INDEX idx_invoice_lines_invoice     ON invoice_lines(invoice_id);
 CREATE INDEX idx_yarn_opening_customer     ON yarn_opening(customer_id);
 CREATE INDEX idx_surat_jalan_prefix        ON surat_jalan(prefix);
 CREATE INDEX idx_surat_jalan_customer      ON surat_jalan(customer_id);
+CREATE INDEX idx_surat_jalan_branch        ON surat_jalan(branch_id);
 CREATE INDEX idx_prod_records_sj           ON production_records(surat_jalan_id);
 CREATE INDEX idx_sales_date                ON sales(sale_date);
 CREATE INDEX idx_sales_fabric              ON sales(fabric_type_id);

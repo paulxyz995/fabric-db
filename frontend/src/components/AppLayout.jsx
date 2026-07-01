@@ -4,7 +4,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   DashboardOutlined, TeamOutlined, BgColorsOutlined,
   FileTextOutlined, LogoutOutlined, CarOutlined, UserSwitchOutlined,
-  ShoppingOutlined,
+  ShoppingOutlined, BranchesOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../hooks/useAuth';
 
@@ -14,7 +14,7 @@ const ROLE_LABEL = { owner: 'Owner', admin: 'Admin', hr: 'HR' };
 
 export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
-  const { user, logout, isOwner, canManageUsers } = useAuth();
+  const { user, logout, isOwner, canManageUsers, canWriteOps } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
@@ -24,6 +24,8 @@ export default function AppLayout() {
     { key: '/customers',    icon: <TeamOutlined />,      label: 'Pelanggan' },
     { key: '/fabric-types', icon: <BgColorsOutlined />,  label: 'Jenis Kain' },
     { key: '/surat-jalan',  icon: <CarOutlined />,       label: 'Surat Jalan' },
+    // Kelola cabang produksi: owner + admin
+    ...(canWriteOps ? [{ key: '/branches', icon: <BranchesOutlined />, label: 'Cabang' }] : []),
     // Invoice/pendapatan hanya owner
     ...(isOwner ? [{ key: '/invoices', icon: <FileTextOutlined />, label: 'Invoice' }] : []),
     // Penjualan kain sendiri hanya owner

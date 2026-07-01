@@ -13,6 +13,7 @@ const suratJalanRoutes = require('./routes/suratJalan');
 const dashboardRoutes  = require('./routes/dashboard');
 const userRoutes       = require('./routes/users');
 const salesRoutes      = require('./routes/sales');
+const branchRoutes     = require('./routes/branches');
 
 const app = express();
 app.use(cors());
@@ -32,6 +33,7 @@ app.use('/api/invoices',         invoiceRoutes);
 app.use('/api/surat-jalan',      suratJalanRoutes);
 app.use('/api/users',            userRoutes);
 app.use('/api/sales',            salesRoutes);
+app.use('/api/branches',         branchRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 

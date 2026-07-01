@@ -135,6 +135,7 @@ psql "$DATABASE_URL" -f src/db/migrate-surat-jalan.sql    # tabel surat jalan
 psql "$DATABASE_URL" -f src/db/migrate-sj-production.sql   # surat jalan -> produksi
 psql "$DATABASE_URL" -f src/db/migrate-roles.sql          # peran owner + akun owner
 psql "$DATABASE_URL" -f src/db/migrate-sales.sql          # tipe pelanggan + modul penjualan
+psql "$DATABASE_URL" -f src/db/migrate-branches.sql       # cabang produksi + pilihan cabang di surat jalan
 ```
 
 > **Penting:** `migrate-roles.sql` wajib dijalankan pada database lama agar peran
@@ -193,6 +194,7 @@ docker compose up -d --build # nyalakan lagi / setelah update kode
 > ```bash
 > docker compose exec -T db psql -U postgres -d fabricdb < backend/src/db/migrate-roles.sql
 > docker compose exec -T db psql -U postgres -d fabricdb < backend/src/db/migrate-sales.sql
+> docker compose exec -T db psql -U postgres -d fabricdb < backend/src/db/migrate-branches.sql
 > ```
 
 ---

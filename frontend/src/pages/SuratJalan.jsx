@@ -101,6 +101,7 @@ export default function SuratJalan() {
   const [rows, setRows] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [fabricTypes, setFabricTypes] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -122,6 +123,7 @@ export default function SuratJalan() {
     load();
     api.get('/customers').then((r) => setCustomers(r.data));
     api.get('/fabric-types').then((r) => setFabricTypes(r.data));
+    api.get('/branches').then((r) => setBranches(r.data));
   }, []);
 
   const items = parseItems(rincianText);
@@ -143,6 +145,7 @@ export default function SuratJalan() {
     setNextNumber(row.number);
     form.setFieldsValue({
       customer_id: row.customer_id ?? undefined,
+      branch_id: row.branch_id ?? undefined,
       prefix: row.prefix,
       jenis_kain: row.jenis_kain,
       kepada: row.kepada,
@@ -199,6 +202,7 @@ export default function SuratJalan() {
       const payload = {
         prefix: v.prefix,
         customer_id: v.customer_id || null,
+        branch_id: v.branch_id || null,
         jenis_kain: v.jenis_kain,
         tanggal: v.tanggal?.format('YYYY-MM-DD'),
         kepada: v.kepada,
@@ -235,6 +239,7 @@ export default function SuratJalan() {
     { title: 'Tanggal', dataIndex: 'tanggal', width: 130, render: (d) => dayjs(d).format('DD MMM YYYY') },
     { title: 'Kepada (Tujuan)', dataIndex: 'kepada', ellipsis: true, render: (v) => v || '—' },
     { title: 'Jenis Kain', dataIndex: 'jenis_kain', width: 150, ellipsis: true, render: (v) => v || '—' },
+    { title: 'Cabang', dataIndex: 'branch_name', width: 120, ellipsis: true, render: (v) => v ? <Tag color="geekblue">{v}</Tag> : <span style={{ color: '#bbb' }}>—</span> },
     { title: 'Roll', dataIndex: 'total_rolls', width: 80, align: 'right', render: fmt },
     { title: 'KG', dataIndex: 'total_kg', width: 110, align: 'right', render: fmt },
     {
@@ -316,6 +321,13 @@ export default function SuratJalan() {
               />
             </Form.Item>
           </Space>
+
+          <Form.Item name="branch_id" label="Cabang Produksi"
+            tooltip="Dicatat internal untuk data — TIDAK dicetak di surat jalan">
+            <Select showSearch allowClear placeholder="Pilih cabang produksi"
+              optionFilterProp="label"
+              options={branches.map((b) => ({ value: b.id, label: b.name }))} />
+          </Form.Item>
 
           <Form.Item name="kepada" label="Kepada (Tujuan)" tooltip="Tujuan / penerima — bisa diubah bebas">
             <Input placeholder="mis. CV Tekad Jaya" />

@@ -35,9 +35,15 @@ Ada 3 peran: **Owner > HR > Admin**.
 | Lihat data operasional (pelanggan, benang, produksi, surat jalan) | ✅ | ✅ | ✅ |
 | Input/edit data operasional | ✅ | ❌ | ✅ |
 | Buat/cetak Surat Jalan | ✅ | ❌ | ✅ |
-| **Invoice / Pendapatan (lihat & buat)** | ✅ | ❌ | ❌ |
-| **Dashboard: kartu pendapatan** | ✅ | ❌ | ❌ |
+| **Invoice / Pendapatan maklon (lihat & buat)** | ✅ | ❌ | ❌ |
+| **Penjualan kain sendiri (harga jual + untung)** | ✅ | ❌ | ❌ |
+| **Dashboard: kartu pendapatan & untung** | ✅ | ❌ | ❌ |
 | Kelola user (tambah admin) | ✅ | ✅ | ❌ |
+
+**Tipe pelanggan:** setiap pelanggan bertipe **Maklon** (benang dari pelanggan, ditagih jasa/kg)
+atau **Produksi Sendiri** (pabrik beli benang, kainnya dijual). Uang maklon dilacak di menu
+**Invoice**; hasil jual kain sendiri (harga jual + untung) dilacak terpisah di menu **Penjualan**
+(keduanya hanya owner).
 
 Catatan:
 - Semua data uang (invoice, tarif maklon, pendapatan) **hanya bisa diakses Owner**.
@@ -128,6 +134,7 @@ psql "$DATABASE_URL" -f src/db/migrate-short-code.sql     # inisial pelanggan
 psql "$DATABASE_URL" -f src/db/migrate-surat-jalan.sql    # tabel surat jalan
 psql "$DATABASE_URL" -f src/db/migrate-sj-production.sql   # surat jalan -> produksi
 psql "$DATABASE_URL" -f src/db/migrate-roles.sql          # peran owner + akun owner
+psql "$DATABASE_URL" -f src/db/migrate-sales.sql          # tipe pelanggan + modul penjualan
 ```
 
 > **Penting:** `migrate-roles.sql` wajib dijalankan pada database lama agar peran
@@ -182,8 +189,11 @@ docker compose up -d --build # nyalakan lagi / setelah update kode
 > atau tambah layanan Caddy ke compose. (Bisa saya bantu kalau sudah punya domain.)
 >
 > **Upgrade DB lama:** init otomatis hanya jalan saat volume kosong. Kalau volume
-> sudah berisi data lama, jalankan migrasi manual sekali:
-> `docker compose exec -T db psql -U postgres -d fabricdb < backend/src/db/migrate-roles.sql`
+> sudah berisi data lama, jalankan migrasi manual sekali (lihat bagian 5):
+> ```bash
+> docker compose exec -T db psql -U postgres -d fabricdb < backend/src/db/migrate-roles.sql
+> docker compose exec -T db psql -U postgres -d fabricdb < backend/src/db/migrate-sales.sql
+> ```
 
 ---
 

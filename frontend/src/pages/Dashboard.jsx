@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Row, Col, Card, Statistic, Typography, Spin, Table, Empty } from 'antd';
 import {
   DropboxOutlined, DollarOutlined, FileTextOutlined, InboxOutlined,
-  RiseOutlined,
+  RiseOutlined, ShoppingOutlined, FundOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../utils/api';
@@ -110,7 +110,23 @@ export default function Dashboard() {
             </Col>
           </Row>
 
-          <Typography.Text type="secondary">Tren pendapatan 6 bulan terakhir</Typography.Text>
+          <Typography.Text type="secondary">Penjualan kain sendiri (bulan ini)</Typography.Text>
+          <Row gutter={[16, 16]} style={{ marginTop: 8, marginBottom: 24 }}>
+            <Col xs={12} sm={12}>
+              <Card>
+                <Statistic title="Total Penjualan Kain Sendiri" value={rp(data.sales_this_month)}
+                  prefix={<ShoppingOutlined />} />
+              </Card>
+            </Col>
+            <Col xs={12} sm={12}>
+              <Card>
+                <Statistic title="Untung Kain Sendiri" value={rp(data.profit_this_month)}
+                  valueStyle={{ color: '#52c41a' }} prefix={<FundOutlined />} />
+              </Card>
+            </Col>
+          </Row>
+
+          <Typography.Text type="secondary">Tren pendapatan maklon 6 bulan terakhir</Typography.Text>
           <Card style={{ marginTop: 8, marginBottom: 24 }}>
             <RevenueChart data={data.monthly_revenue} />
           </Card>

@@ -44,6 +44,10 @@ export default function Customers() {
       render: (v) => <a>{v}</a> },
     { title: 'Inisial', dataIndex: 'short_code', width: 90,
       render: (v) => v ? <Tag>{v}</Tag> : <span style={{ color: '#bbb' }}>—</span> },
+    { title: 'Tipe', dataIndex: 'type', width: 130,
+      render: (v) => v === 'own'
+        ? <Tag color="purple">Produksi Sendiri</Tag>
+        : <Tag color="cyan">Maklon</Tag> },
     { title: 'Kontak', dataIndex: 'contact_person', ellipsis: true },
     { title: 'Telepon', dataIndex: 'phone' },
     { title: 'Status', dataIndex: 'is_active', width: 90,
@@ -93,6 +97,13 @@ export default function Customers() {
           <Form.Item name="short_code" label="Inisial / Nama Singkat"
             tooltip="Inisial yang dipakai di nama file PDF, mis. LYB, FRS, CFY">
             <Input placeholder="mis. CFY" maxLength={20} />
+          </Form.Item>
+          <Form.Item name="type" label="Tipe" initialValue="maklon"
+            tooltip="Maklon = benang dari pelanggan (jasa). Produksi Sendiri = pabrik beli benang & jual kainnya.">
+            <Select options={[
+              { value: 'maklon', label: 'Maklon (jasa)' },
+              { value: 'own', label: 'Produksi Sendiri' },
+            ]} />
           </Form.Item>
           <Form.Item name="contact_person" label="Nama Kontak"><Input /></Form.Item>
           <Form.Item name="phone" label="Telepon"><Input /></Form.Item>

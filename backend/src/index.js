@@ -12,6 +12,7 @@ const invoiceRoutes    = require('./routes/invoices');
 const suratJalanRoutes = require('./routes/suratJalan');
 const dashboardRoutes  = require('./routes/dashboard');
 const userRoutes       = require('./routes/users');
+const salesRoutes      = require('./routes/sales');
 
 const app = express();
 app.use(cors());
@@ -30,6 +31,7 @@ app.use('/api/production',        productionRoutes);
 app.use('/api/invoices',         invoiceRoutes);
 app.use('/api/surat-jalan',      suratJalanRoutes);
 app.use('/api/users',            userRoutes);
+app.use('/api/sales',            salesRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 

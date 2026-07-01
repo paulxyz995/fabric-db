@@ -11,6 +11,7 @@ import FabricTypes from './pages/FabricTypes';
 import Invoices from './pages/Invoices';
 import SuratJalan from './pages/SuratJalan';
 import Pengguna from './pages/Pengguna';
+import Penjualan from './pages/Penjualan';
 import { useAuth } from './hooks/useAuth';
 
 function PrivateRoute({ children }) {
@@ -45,6 +46,10 @@ export default function App() {
             <Route
               path="invoices"
               element={<RoleRoute allow={(a) => a.isOwner}><Invoices /></RoleRoute>}
+            />
+            <Route
+              path="sales"
+              element={<RoleRoute allow={(a) => a.isOwner}><Penjualan /></RoleRoute>}
             />
             <Route path="surat-jalan"   element={<SuratJalan />} />
             <Route

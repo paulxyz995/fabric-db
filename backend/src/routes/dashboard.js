@@ -41,7 +41,7 @@ router.get('/', async (req, res) => {
 
   // Data uang: hanya owner
   if (isOwner) {
-    const [invoices, revenueMonth, trend] = await Promise.all([
+    const [invoices, revenueMonth, trend, salesMonth] = await Promise.all([
       pool.query(`
         SELECT
           COUNT(*) FILTER (WHERE status = 'draft')   AS draft,
@@ -69,10 +69,19 @@ router.get('/', async (req, res) => {
         GROUP BY 1
         ORDER BY 1
       `),
+      // Penjualan kain produksi sendiri bulan ini: total penjualan + untung
+      pool.query(`
+        SELECT COALESCE(SUM(amount), 0) AS total_sales,
+               COALESCE(SUM(profit), 0) AS total_profit
+        FROM sales
+        WHERE date_trunc('month', sale_date) = date_trunc('month', CURRENT_DATE)
+      `),
     ]);
     payload.invoices           = invoices.rows[0];
     payload.revenue_this_month = Number(revenueMonth.rows[0].revenue);
     payload.monthly_revenue    = trend.rows.map((r) => ({ month: r.month, revenue: Number(r.revenue) }));
+    payload.sales_this_month   = Number(salesMonth.rows[0].total_sales);
+    payload.profit_this_month  = Number(salesMonth.rows[0].total_profit);
   }
 
   res.json(payload);

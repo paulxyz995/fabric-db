@@ -24,3 +24,4 @@ Thumbs.db
 # Generated import artifacts (contain real business data)
 backend/src/db/import-report.json
 *.xlsx
+.gstack/

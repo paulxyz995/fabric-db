@@ -43,6 +43,8 @@ CREATE TABLE customers (
   code            VARCHAR(20) NOT NULL UNIQUE,   -- e.g. CUST-001
   name            VARCHAR(150) NOT NULL,
   short_code      VARCHAR(20),                   -- admin nickname/initial, e.g. LYB, FRS (used in PDF filenames)
+  type            VARCHAR(20) NOT NULL DEFAULT 'maklon'
+                    CHECK (type IN ('maklon', 'own')),  -- maklon (jasa) vs own (produksi sendiri)
   contact_person  VARCHAR(100),
   phone           VARCHAR(30),
   email           VARCHAR(150),
@@ -192,6 +194,29 @@ ALTER TABLE production_records
   FOREIGN KEY (surat_jalan_id) REFERENCES surat_jalan(id) ON DELETE CASCADE;
 
 -- ============================================================
+-- SALES (PENJUALAN KAIN SENDIRI) — hasil produksi sendiri yang DIJUAL.
+-- Terpisah dari invoice maklon. Menyimpan harga jual + modal -> untung.
+-- Hanya diakses owner. amount/cost_total/profit dihitung di backend.
+-- ============================================================
+CREATE TABLE sales (
+  id                SERIAL PRIMARY KEY,
+  sale_number       VARCHAR(30) UNIQUE,             -- SALE-2026-001
+  sale_date         DATE NOT NULL DEFAULT CURRENT_DATE,
+  buyer             VARCHAR(200),                   -- pembeli (bebas)
+  fabric_type_id    INT REFERENCES fabric_types(id),
+  roll_count        INT NOT NULL DEFAULT 0 CHECK (roll_count >= 0),
+  quantity_kg       NUMERIC(12, 3) NOT NULL CHECK (quantity_kg > 0),
+  sell_price_per_kg NUMERIC(12, 2) NOT NULL CHECK (sell_price_per_kg >= 0),  -- harga jual/kg
+  cost_per_kg       NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (cost_per_kg >= 0), -- modal/HPP per kg
+  amount            NUMERIC(14, 2) NOT NULL DEFAULT 0,   -- kg * harga jual
+  cost_total        NUMERIC(14, 2) NOT NULL DEFAULT 0,   -- kg * modal
+  profit            NUMERIC(14, 2) NOT NULL DEFAULT 0,   -- amount - cost_total (untung)
+  notes             TEXT,
+  created_by        INT REFERENCES users(id),
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ============================================================
 -- INDEXES
 -- ============================================================
 CREATE INDEX idx_yarn_receipts_customer    ON yarn_receipts(customer_id);
@@ -206,6 +231,8 @@ CREATE INDEX idx_yarn_opening_customer     ON yarn_opening(customer_id);
 CREATE INDEX idx_surat_jalan_prefix        ON surat_jalan(prefix);
 CREATE INDEX idx_surat_jalan_customer      ON surat_jalan(customer_id);
 CREATE INDEX idx_prod_records_sj           ON production_records(surat_jalan_id);
+CREATE INDEX idx_sales_date                ON sales(sale_date);
+CREATE INDEX idx_sales_fabric              ON sales(fabric_type_id);
 
 -- ============================================================
 -- VIEWS

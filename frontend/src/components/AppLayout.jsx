@@ -4,6 +4,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   DashboardOutlined, TeamOutlined, BgColorsOutlined,
   FileTextOutlined, LogoutOutlined, CarOutlined, UserSwitchOutlined,
+  ShoppingOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../hooks/useAuth';
 
@@ -25,6 +26,8 @@ export default function AppLayout() {
     { key: '/surat-jalan',  icon: <CarOutlined />,       label: 'Surat Jalan' },
     // Invoice/pendapatan hanya owner
     ...(isOwner ? [{ key: '/invoices', icon: <FileTextOutlined />, label: 'Invoice' }] : []),
+    // Penjualan kain sendiri hanya owner
+    ...(isOwner ? [{ key: '/sales', icon: <ShoppingOutlined />, label: 'Penjualan' }] : []),
     // Kelola user hanya owner + HR
     ...(canManageUsers ? [{ key: '/users', icon: <UserSwitchOutlined />, label: 'Pengguna' }] : []),
   ];

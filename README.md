@@ -19,7 +19,7 @@ harian, sisa benang (SISA), surat jalan, dan invoice bulanan.
 3. [Setup Lokal (Development)](#3-setup-lokal-development)
 4. [Variabel Environment](#4-variabel-environment)
 5. [Database: Skema & Migrasi](#5-database-skema--migrasi)
-6. [Deploy ke VPS (Produksi)](#6-deploy-ke-vps-produksi)
+6. [Deploy ke VPS (Produksi)](#6-deploy-ke-vps-produksi) — Cara A: Docker · Cara B: Manual
 7. [Cara Update Setelah Deploy](#7-cara-update-setelah-deploy)
 8. [Backup Database](#8-backup-database)
 9. [Troubleshooting](#9-troubleshooting)
@@ -137,8 +137,59 @@ psql "$DATABASE_URL" -f src/db/migrate-roles.sql          # peran owner + akun o
 
 ## 6. Deploy ke VPS (Produksi)
 
-Panduan ini pakai **Ubuntu 22.04/24.04** + **Nginx** + **PM2**. Cocok untuk
-Hetzner, DigitalOcean, Contabo, Vultr, dll (RAM 2 GB cukup).
+Ada dua cara. **Cara A (Docker) paling mudah** — cukup satu perintah. Cara B manual
+kalau tidak mau pakai Docker.
+
+---
+
+### Cara A — Docker (Direkomendasikan)
+
+Semua (PostgreSQL + backend + frontend/Nginx) dijalankan otomatis oleh
+`docker-compose.yml`. Cocok untuk VPS **Ubuntu 22.04/24.04**.
+
+```bash
+# 1. Install Docker (sekali saja)
+ssh root@IP_SERVER
+curl -fsSL https://get.docker.com | sh
+
+# 2. Ambil kode
+cd /opt
+git clone https://github.com/paulxyz995/fabric-db.git
+cd fabric-db
+
+# 3. Buat file .env dari contoh, lalu isi password & JWT_SECRET
+cp .env.example .env
+nano .env          # ganti POSTGRES_PASSWORD dan JWT_SECRET
+
+# 4. Jalankan semuanya
+docker compose up -d --build
+```
+
+Buka **http://IP_SERVER:8080** — aplikasi langsung online. Database, tabel, dan
+akun default dibuat otomatis saat pertama kali jalan.
+
+Perintah harian:
+```bash
+docker compose ps            # status
+docker compose logs -f       # lihat log
+docker compose down          # matikan (data tetap aman di volume)
+docker compose up -d --build # nyalakan lagi / setelah update kode
+```
+
+> **Ganti port:** ubah `WEB_PORT` di `.env` (mis. `WEB_PORT=80` agar diakses tanpa `:8080`).
+>
+> **HTTPS + domain:** taruh Caddy/Nginx sebagai reverse proxy di depan port 8080,
+> atau tambah layanan Caddy ke compose. (Bisa saya bantu kalau sudah punya domain.)
+>
+> **Upgrade DB lama:** init otomatis hanya jalan saat volume kosong. Kalau volume
+> sudah berisi data lama, jalankan migrasi manual sekali:
+> `docker compose exec -T db psql -U postgres -d fabricdb < backend/src/db/migrate-roles.sql`
+
+---
+
+### Cara B — Manual (Nginx + PM2)
+
+Tanpa Docker. Pakai **Ubuntu 22.04/24.04** + **Nginx** + **PM2**.
 
 ### 6.1 Install kebutuhan di server
 ```bash
